@@ -1,11 +1,15 @@
 package org.metersphere.exporter;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.gson.Gson;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.file.PsiDirectoryImpl;
-import com.intellij.psi.impl.source.tree.java.PsiLiteralExpressionImpl;
+import com.intellij.psi.impl.source.PsiClassImpl;
+import com.intellij.psi.impl.source.PsiFieldImpl;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import de.plushnikov.intellij.lombok.util.PsiAnnotationUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -111,8 +115,8 @@ public class PostmanExporter implements IExporter {
                 }
 
                 if (isRequest) {
-                    Collection<PsiAnnotation> annotations = PsiTreeUtil.findChildrenOfType(controllerModi, PsiAnnotation.class);
-                    PsiAnnotation requestMappingA = annotations.stream().filter(a -> a.getQualifiedName().contains("RequestMapping")).findAny().get();
+                    List<PsiAnnotation> annotations = PsiTreeUtil.findChildrenOfType(controllerModi, PsiAnnotation.class).stream().filter(a -> a.getQualifiedName().contains("RequestMapping")).collect(Collectors.toList());
+                    PsiAnnotation requestMappingA = annotations.size() > 0 ? annotations.get(0) : null;
                     if (requestMappingA != null) {
                         basePath = PsiAnnotationUtil.getAnnotationValue(requestMappingA, String.class);
                     }
@@ -165,59 +169,60 @@ public class PostmanExporter implements IExporter {
 
                                                 PsiLiteralExpression ple = expressionIterator.next();
                                                 String heaerItem = ple.getValue().toString();
-                                                headerBean = new PostmanModel.ItemBean.RequestBean.HeaderBean();
-                                                headerBean.setKey(heaerItem.split("=")[0]);
-                                                headerBean.setValue(heaerItem.split("=")[1]);
-                                                headerBean.setType("text");
-                                                headerBeans.add(headerBean);
+                                                if (heaerItem.contains("=")) {
+                                                    headerBean = new PostmanModel.ItemBean.RequestBean.HeaderBean();
+                                                    headerBean.setKey(heaerItem.split("=")[0]);
+                                                    headerBean.setValue(heaerItem.split("=")[1]);
+                                                    headerBean.setType("text");
+                                                    headerBeans.add(headerBean);
+                                                }
                                             }
                                         }
                                     }
 
                                 }
                                 requestBean.setHeader(removeDuplicate(headerBeans));
+                            }
+                            //body
+                            PsiParameterList parameterList = e1.getParameterList();
+                            for (PsiParameter pe : parameterList.getParameters()) {
+                                PsiAnnotation[] pAt = pe.getAnnotations();
+                                if (pAt != null && pAt.length != 0) {
+                                    if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestBody") != null || (pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart") == null && !PluginConstants.simpleJavaType.contains(pe.getType().getCanonicalText()))) {
+                                        PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
+                                        bodyBean.setMode("raw");
+                                        //:todo
+                                        bodyBean.setRaw(getRaw(pe));
 
-                                //body
-                                PsiParameterList parameterList = e1.getParameterList();
-                                for (PsiParameter pe : parameterList.getParameters()) {
-                                    PsiAnnotation[] pAt = pe.getAnnotations();
-                                    if (pAt != null && pAt.length != 0) {
-                                        if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestBody") != null || (pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart") == null && !PluginConstants.simpleJavaType.contains(pe.getType().getCanonicalText()))) {
-                                            PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
-                                            bodyBean.setMode("raw");
-                                            //:todo
-                                            bodyBean.setRaw("");
-                                            PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean optionsBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean();
-                                            PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean rawBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean();
-                                            rawBean.setLanguage("json");
-                                            optionsBean.setRaw(rawBean);
-                                            bodyBean.setOptions(optionsBean);
-                                            requestBean.setBody(bodyBean);
-                                            //隐式
-                                            addRestHeader(headerBeans);
-                                        }
-                                    } else {
-                                        String javaType = pe.getType().getCanonicalText();
-                                        if (!PluginConstants.simpleJavaType.contains(javaType)) {
-                                            PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
-                                            bodyBean.setMode("raw");
-                                            //:todo
-                                            bodyBean.setRaw("");
-                                            PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean optionsBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean();
-                                            PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean rawBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean();
-                                            rawBean.setLanguage("json");
-                                            optionsBean.setRaw(rawBean);
-                                            bodyBean.setOptions(optionsBean);
-                                            requestBean.setBody(bodyBean);
-                                            //隐式
-                                            addFormHeader(headerBeans);
-                                        }
+                                        PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean optionsBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean();
+                                        PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean rawBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean();
+                                        rawBean.setLanguage("json");
+                                        optionsBean.setRaw(rawBean);
+                                        bodyBean.setOptions(optionsBean);
+                                        requestBean.setBody(bodyBean);
+                                        //隐式
+                                        addRestHeader(headerBeans);
+                                    }
+                                } else {
+                                    String javaType = pe.getType().getCanonicalText();
+                                    if (!PluginConstants.simpleJavaType.contains(javaType)) {
+                                        PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
+                                        bodyBean.setMode("raw");
+                                        //:todo
+                                        bodyBean.setRaw(getRaw(pe));
+                                        PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean optionsBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean();
+                                        PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean rawBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean();
+                                        rawBean.setLanguage("json");
+                                        optionsBean.setRaw(rawBean);
+                                        bodyBean.setOptions(optionsBean);
+                                        requestBean.setBody(bodyBean);
+                                        //隐式
+                                        addFormHeader(headerBeans);
                                     }
                                 }
-                                itemBean.setRequest(requestBean);
-                                itemBeans.add(itemBean);
                             }
-
+                            itemBean.setRequest(requestBean);
+                            itemBeans.add(itemBean);
                         }
                     }
                     model.setItem(itemBeans);
@@ -367,6 +372,47 @@ public class PostmanExporter implements IExporter {
                 r.put("general", true);
         }
         return r;
+    }
+
+    public String getRaw(PsiParameter pe) {
+        PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.projectScope(pe.getProject()));
+        LinkedHashMap param = new LinkedHashMap();
+        if (psiClass != null) {
+            PsiField[] fields = psiClass.getAllFields();
+            for (PsiField field : fields) {
+                if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
+                    param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
+                else if (field.getType().getCanonicalText().contains("[]") || field.getType().getCanonicalText().contains("<")) {
+                    if (!PluginConstants.simpleJavaType.contains(((PsiClassImpl) ((PsiFieldImpl) field).getContext()).getQualifiedName())) {
+                        param.put(field.getName(), new ArrayList<>() {{
+                            add(getFields(JavaPsiFacade.getInstance(pe.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(pe.getProject()))));
+                        }});
+                    } else {
+                        param.put(field.getName(), new JSONArray());
+                    }
+                } else
+                    param.put(field.getName(), new JSONObject());
+            }
+        }
+        return JSONObject.toJSONString(param, SerializerFeature.PrettyFormat);
+    }
+
+    public Object getFields(PsiClass context) {
+        PsiField[] fields = context.getAllFields();
+        LinkedHashMap param = new LinkedHashMap();
+        for (PsiField field : fields) {
+            if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
+                param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
+            else if (field.getType().getCanonicalText().contains("[]") || field.getType().getCanonicalText().contains("<")) {
+                if (!PluginConstants.simpleJavaType.contains(((PsiClassImpl) field.getContext()).getQualifiedName())) {
+                    param.put(field.getName(), getFields(JavaPsiFacade.getInstance(context.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(context.getProject()))));
+                } else {
+                    param.put(field.getName(), new JSONArray());
+                }
+            } else
+                param.put(field.getName(), new JSONObject());
+        }
+        return param;
     }
 
 }
