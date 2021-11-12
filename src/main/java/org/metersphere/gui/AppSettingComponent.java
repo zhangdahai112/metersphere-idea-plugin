@@ -91,6 +91,10 @@ public class AppSettingComponent {
         return true;
     }
 
+    public String getSinature() throws Exception {
+        return aesEncrypt(accesskey.getText() + "|" + UUID.randomUUID().toString() + "|" + System.currentTimeMillis(), secretkey.getText(), accesskey.getText());
+    }
+
     public static String aesEncrypt(String src, String secretKey, String iv) throws Exception {
         byte[] raw = secretKey.getBytes("UTF-8");
         SecretKeySpec secretKeySpec = new SecretKeySpec(raw, "AES");

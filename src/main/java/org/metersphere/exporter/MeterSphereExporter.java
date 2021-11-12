@@ -10,7 +10,7 @@ import com.intellij.psi.PsiJavaFile;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class MeterSphereExporter implements IExporter {
     private Logger logger = Logger.getInstance(MeterSphereExporter.class);
     private PostmanExporter postmanExporter = new PostmanExporter();
-    private AppSettingComponent appSettingComponent = ApplicationManager.getApplication().getComponent(AppSettingComponent.class);
+    private AppSettingComponent appSettingComponent = ApplicationManager.getApplication().getService(AppSettingComponent.class);
     private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
 
     @Override
@@ -73,7 +73,12 @@ public class MeterSphereExporter implements IExporter {
             bufferedWriter.flush();
             bufferedWriter.close();
 
-            uploadToServer(temp);
+            boolean r = uploadToServer(temp);
+            if (r) {
+                Messages.showInfoMessage("export to MeterSphere success!", PluginConstants.MessageTitle.Info.name());
+            } else {
+                Messages.showInfoMessage("export to MeterSphere fail!", PluginConstants.MessageTitle.Info.name());
+            }
             if (temp.exists()) {
                 temp.delete();
             }
@@ -90,14 +95,16 @@ public class MeterSphereExporter implements IExporter {
 
         CloseableHttpClient httpclient = HttpClients.createDefault();
         String url = appSettingService.getState().getMeterSphereAddress() + "/api/definition/import";
-        HttpPut httpPut = new HttpPut(url);// 创建httpPut
-        httpPut.setHeader("Accept", "application/octet-stream");
-        httpPut.setHeader("Content-Type", "application/octet-stream");
+        HttpPost httpPost = new HttpPost(url);// 创建httpPost
+        httpPost.setHeader("Accept", "application/json, text/plain, */*");
+        httpPost.setHeader("Content-Type", "multipart/form-data");
+        httpPost.setHeader("accesskey", appSettingService.getState().getAccesskey());
+        httpPost.setHeader("signature", appSettingComponent.getSinature());
         CloseableHttpResponse response = null;
 
-        httpPut.setEntity(new FileEntity(file));
+        httpPost.setEntity(new FileEntity(file));
         try {
-            response = httpclient.execute(httpPut);
+            response = httpclient.execute(httpPost);
             StatusLine status = response.getStatusLine();
             int state = status.getStatusCode();
             if (state == HttpStatus.SC_OK || state == HttpStatus.SC_CREATED) {

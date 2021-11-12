@@ -68,7 +68,7 @@
     </actions>
     <depends>com.intellij.modules.java</depends>
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService id="appSettingService"
-                            serviceImplementation="org.metersphere.AppSettingService"/>
+        <applicationService serviceImplementation="org.metersphere.AppSettingService"/>
+        <applicationService serviceImplementation="org.metersphere.gui.AppSettingComponent"></applicationService>
     </extensions>
 </idea-plugin>
