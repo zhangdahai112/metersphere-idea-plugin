@@ -7,7 +7,8 @@ import java.util.Map;
 
 public class ExporterFactory {
     private static Map<String, IExporter> exporterMap = new HashMap<>() {{
-        put("", new PostmanExporter());
+        put("postman", new PostmanExporter());
+        put("ms", new MeterSphereExporter());
     }};
 
     public static boolean export(String source, PsiElement psiElement) {

@@ -37,17 +37,17 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </group>
 
-        <!--        <action id="com.itangcent.idea.easy_api.actions.PostmanExportAction"-->
-        <!--                class="com.itangcent.idea.plugin.actions.PostmanExportAction" text="ExportToPostman"-->
-        <!--                description="ExportToPostman">-->
-        <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
-        <!--        </action>-->
+        <action id="PostmanAction"
+                class="org.metersphere.actions.ExportToPostmanAction" text="ExportToPostman"
+                description="ExportToPostman">
+            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>
+            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>
+            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>
+            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>
+        </action>
 
-        <action id="ProjectViewAction"
-                class="org.metersphere.actions.ProjectViewAction" text="ExportToMeterSphere"
+        <action id="MSAction"
+                class="org.metersphere.actions.ExportToMSAction" text="ExportToMeterSphere"
                 description="ExportToMeterSphere">
             <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>
             <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>
@@ -65,67 +65,10 @@
                     keymap="Mac OS X 10.5+" replace-all="true"/>
         </action>
 
-        <!--        <action id="com.itangcent.idea.easy_api.actions.MarkdownExportAction"-->
-        <!--                class="com.itangcent.idea.plugin.actions.MarkdownExportAction" text="ExportMarkdown"-->
-        <!--                description="ExportToMarkdown">-->
-        <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
-        <!--        </action>-->
-
-        <!--        <action id="com.itangcent.idea.easy_api.actions.FieldsToJsonAction"-->
-        <!--                class="com.itangcent.idea.plugin.actions.FieldsToJsonAction" text="ToJson"-->
-        <!--                description="ToJson">-->
-        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--        </action>-->
-
-        <!--        <action id="com.itangcent.idea.easy_api.actions.FieldsToJson5Action"-->
-        <!--                class="com.itangcent.idea.plugin.actions.FieldsToJson5Action" text="ToJson5"-->
-        <!--                description="ToJson5">-->
-        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--        </action>-->
-
-        <!--        <action id="com.itangcent.idea.easy_api.actions.ApiCallAction"-->
-        <!--                class="com.itangcent.idea.plugin.actions.ApiCallAction" text="Call"-->
-        <!--                description="Call">-->
-        <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
-        <!--                    <keyboard-shortcut-->
-        <!--                            first-keystroke="alt shift C"-->
-        <!--                            keymap="$default"-->
-        <!--                    />-->
-        <!--                    <keyboard-shortcut-->
-        <!--                            first-keystroke="control C"-->
-        <!--                            keymap="Mac OS X" replace-all="true"/>-->
-        <!--                    <keyboard-shortcut-->
-        <!--                            first-keystroke="control C"-->
-        <!--                            keymap="Mac OS X 10.5+" replace-all="true"/>-->
-        <!--        </action>-->
-
-        <!--        <action id="com.itangcent.idea.easy_api.actions.MultipleExportAction"-->
-        <!--                class="com.itangcent.idea.plugin.actions.SuvExportAction" text="Export"-->
-        <!--                description="Export">-->
-        <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
-        <!--            <keyboard-shortcut-->
-        <!--                    first-keystroke="alt shift E"-->
-        <!--                    keymap="$default"-->
-        <!--            />-->
-        <!--            <keyboard-shortcut-->
-        <!--                    first-keystroke="control E"-->
-        <!--                    keymap="Mac OS X" replace-all="true"/>-->
-        <!--            <keyboard-shortcut-->
-        <!--                    first-keystroke="control E"-->
-        <!--                    keymap="Mac OS X 10.5+" replace-all="true"/>-->
-        <!--        </action>-->
-
     </actions>
     <depends>com.intellij.modules.java</depends>
-    <!--    <depends config-file="actions/plugin-java.xml">com.intellij.modules.java</depends>-->
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService id="appSettingService"
+                            serviceImplementation="org.metersphere.AppSettingService"/>
+    </extensions>
 </idea-plugin>
