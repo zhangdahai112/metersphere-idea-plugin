@@ -8,7 +8,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.file.PsiDirectoryImpl;
 import com.intellij.psi.impl.source.PsiClassImpl;
-import com.intellij.psi.impl.source.PsiFieldImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import de.plushnikov.intellij.lombok.util.PsiAnnotationUtil;
@@ -126,15 +125,15 @@ public class PostmanExporter implements IExporter {
                     while (methodIterator.hasNext()) {
                         PsiMethod e1 = methodIterator.next();
                         //注解
-                        PsiAnnotation mapAn = PsiTreeUtil.findChildOfType(e1, PsiAnnotation.class);
+                        Optional<PsiAnnotation> mapO = findMappingAnn(e1, PsiAnnotation.class);
 
-                        if (mapAn != null && mapAn.getQualifiedName().contains("Mapping")) {
+                        if (mapO.isPresent()) {
                             PostmanModel.ItemBean itemBean = new PostmanModel.ItemBean();
                             //方法名称
                             itemBean.setName(e1.getName());
                             PostmanModel.ItemBean.RequestBean requestBean = new PostmanModel.ItemBean.RequestBean();
                             //请求类型
-                            requestBean.setMethod(getMethod(mapAn));
+                            requestBean.setMethod(getMethod(mapO.get()));
                             //url
                             PostmanModel.ItemBean.RequestBean.UrlBean urlBean = new PostmanModel.ItemBean.RequestBean.UrlBean();
                             urlBean.setHost("{{" + e1.getProject().getName() + "}}");
@@ -234,6 +233,11 @@ public class PostmanExporter implements IExporter {
             }
         });
         return models;
+    }
+
+    private Optional<PsiAnnotation> findMappingAnn(PsiMethod e1, Class<PsiAnnotation> psiAnnotationClass) {
+        Collection<PsiAnnotation> annotations = PsiTreeUtil.findChildrenOfType(e1, PsiAnnotation.class);
+        return annotations.stream().filter(a -> a.getQualifiedName().contains("Mapping")).findFirst();
     }
 
     private void addFormHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans) {
@@ -347,11 +351,15 @@ public class PostmanExporter implements IExporter {
     }
 
     private String getUrlFromAnnotation(PsiMethod method) {
-        PsiAnnotation mappingAn = PsiTreeUtil.findChildOfType(method, PsiAnnotation.class);
-        if (mappingAn != null && mappingAn.getQualifiedName().contains("Mapping")) {
-            Collection<String> mapUrls = PsiAnnotationUtil.getAnnotationValues(mappingAn, "value", String.class);
-            if (mapUrls.size() > 0) {
-                return mapUrls.iterator().next();
+        Collection<PsiAnnotation> mappingAn = PsiTreeUtil.findChildrenOfType(method, PsiAnnotation.class);
+        Iterator<PsiAnnotation> mi = mappingAn.iterator();
+        while (mi.hasNext()) {
+            PsiAnnotation annotation = mi.next();
+            if (annotation.getQualifiedName().contains("Mapping")) {
+                Collection<String> mapUrls = PsiAnnotationUtil.getAnnotationValues(annotation, "value", String.class);
+                if (mapUrls.size() > 0) {
+                    return mapUrls.iterator().next();
+                }
             }
         }
         return null;
