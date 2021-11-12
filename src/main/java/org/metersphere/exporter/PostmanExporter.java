@@ -126,19 +126,21 @@ public class PostmanExporter implements IExporter {
                     while (methodIterator.hasNext()) {
                         PsiMethod e1 = methodIterator.next();
                         //注解
-                        if (e1.getFirstChild() instanceof PsiModifierList) {
+                        PsiAnnotation mapAn = PsiTreeUtil.findChildOfType(e1, PsiAnnotation.class);
+
+                        if (mapAn != null && mapAn.getQualifiedName().contains("Mapping")) {
                             PostmanModel.ItemBean itemBean = new PostmanModel.ItemBean();
                             //方法名称
-                            itemBean.setName(((PsiMethod) e1).getName());
+                            itemBean.setName(e1.getName());
                             PostmanModel.ItemBean.RequestBean requestBean = new PostmanModel.ItemBean.RequestBean();
                             //请求类型
-                            requestBean.setMethod(getMethod((PsiModifierList) e1.getFirstChild()));
+                            requestBean.setMethod(getMethod(mapAn));
                             //url
                             PostmanModel.ItemBean.RequestBean.UrlBean urlBean = new PostmanModel.ItemBean.RequestBean.UrlBean();
                             urlBean.setHost("{{" + e1.getProject().getName() + "}}");
-                            String urlStr = Optional.ofNullable(getUrlFromAnnotation(e1.getModifierList())).orElse("");
+                            String urlStr = Optional.ofNullable(getUrlFromAnnotation(e1)).orElse("");
                             urlBean.setPath(getPath(urlStr, basePath));
-                            urlBean.setQuery(getQuery((PsiMethod) e1, requestBean));
+                            urlBean.setQuery(getQuery(e1, requestBean));
                             urlBean.setRaw(urlBean.getHost() + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
                             requestBean.setUrl(urlBean);
                             //header
@@ -292,6 +294,9 @@ public class PostmanExporter implements IExporter {
         List<JSONObject> r = new ArrayList<>();
         PsiParameterList parametersList = e1.getParameterList();
         PsiParameter[] parameter = parametersList.getParameters();
+        if (requestBean.getMethod().equalsIgnoreCase("REQUEST") && parameter.length == 0) {
+            requestBean.setMethod("GET");
+        }
         for (PsiParameter psiParameter : parameter) {
             PsiAnnotation[] pAt = psiParameter.getAnnotations();
             if (pAt != null && pAt.length != 0) {
@@ -324,23 +329,13 @@ public class PostmanExporter implements IExporter {
         return r;
     }
 
-    private String getMethod(PsiModifierList modifierList) {
+    private String getMethod(PsiAnnotation mapAnn) {
         for (String s : SpringMappingConstants.mapList) {
-            if (findModifierInList(modifierList, s) != null) {
-                return s.replace("Mapping", "").toUpperCase();
+            if (mapAnn.getQualifiedName().equalsIgnoreCase(s)) {
+                return s.replace("org.springframework.web.bind.annotation.", "").replace("Mapping", "").toUpperCase();
             }
         }
         return "Unknown Method";
-    }
-
-    private PsiAnnotation findReqAnnotation(PsiModifierList modifierList) {
-        for (String s : SpringMappingConstants.mapList) {
-            PsiAnnotation annotation = (PsiAnnotation) findModifierInList(modifierList, s);
-            if (annotation != null) {
-                return annotation;
-            }
-        }
-        return null;
     }
 
     public static PsiElement findModifierInList(@NotNull PsiModifierList modifierList, String modifier) {
@@ -351,10 +346,13 @@ public class PostmanExporter implements IExporter {
         return null;
     }
 
-    private String getUrlFromAnnotation(PsiModifierList modifierList) {
-        PsiAnnotation annotation = findReqAnnotation(modifierList);
-        if (annotation != null) {
-            return PsiAnnotationUtil.getAnnotationValue(annotation, String.class);
+    private String getUrlFromAnnotation(PsiMethod method) {
+        PsiAnnotation mappingAn = PsiTreeUtil.findChildOfType(method, PsiAnnotation.class);
+        if (mappingAn != null && mappingAn.getQualifiedName().contains("Mapping")) {
+            Collection<String> mapUrls = PsiAnnotationUtil.getAnnotationValues(mappingAn, "value", String.class);
+            if (mapUrls.size() > 0) {
+                return mapUrls.iterator().next();
+            }
         }
         return null;
     }
@@ -382,23 +380,28 @@ public class PostmanExporter implements IExporter {
             for (PsiField field : fields) {
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
-                else if (field.getType().getCanonicalText().contains("[]") || field.getType().getCanonicalText().contains("<")) {
-                    if (!PluginConstants.simpleJavaType.contains(((PsiClassImpl) ((PsiFieldImpl) field).getContext()).getQualifiedName())) {
+                    //这个判断对多层集合嵌套的数据类型
+                else {
+                    if (field.getType().getCanonicalText().contains("<")) {
                         param.put(field.getName(), new ArrayList<>() {{
                             add(getFields(JavaPsiFacade.getInstance(pe.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(pe.getProject()))));
                         }});
-                    } else {
+                    } else if (field.getType().getCanonicalText().contains("[]"))
                         param.put(field.getName(), new JSONArray());
-                    }
-                } else
-                    param.put(field.getName(), new JSONObject());
+                    else
+                        param.put(field.getName(), new JSONObject());
+                }
             }
         }
         return JSONObject.toJSONString(param, SerializerFeature.PrettyFormat);
     }
 
     public Object getFields(PsiClass context) {
+        if (context == null)
+            return null;
         PsiField[] fields = context.getAllFields();
+        if (fields == null)
+            return null;
         LinkedHashMap param = new LinkedHashMap();
         for (PsiField field : fields) {
             if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))

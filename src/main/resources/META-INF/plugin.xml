@@ -53,6 +53,16 @@
             <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>
             <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>
             <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>
+            <keyboard-shortcut
+                    first-keystroke="alt shift e"
+                    keymap="$default"
+            />
+            <keyboard-shortcut
+                    first-keystroke="control C"
+                    keymap="Mac OS X" replace-all="true"/>
+            <keyboard-shortcut
+                    first-keystroke="control C"
+                    keymap="Mac OS X 10.5+" replace-all="true"/>
         </action>
 
         <!--        <action id="com.itangcent.idea.easy_api.actions.MarkdownExportAction"-->
@@ -84,16 +94,16 @@
         <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
         <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
         <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
-        <!--            <keyboard-shortcut-->
-        <!--                    first-keystroke="alt shift C"-->
-        <!--                    keymap="$default"-->
-        <!--            />-->
-        <!--            <keyboard-shortcut-->
-        <!--                    first-keystroke="control C"-->
-        <!--                    keymap="Mac OS X" replace-all="true"/>-->
-        <!--            <keyboard-shortcut-->
-        <!--                    first-keystroke="control C"-->
-        <!--                    keymap="Mac OS X 10.5+" replace-all="true"/>-->
+        <!--                    <keyboard-shortcut-->
+        <!--                            first-keystroke="alt shift C"-->
+        <!--                            keymap="$default"-->
+        <!--                    />-->
+        <!--                    <keyboard-shortcut-->
+        <!--                            first-keystroke="control C"-->
+        <!--                            keymap="Mac OS X" replace-all="true"/>-->
+        <!--                    <keyboard-shortcut-->
+        <!--                            first-keystroke="control C"-->
+        <!--                            keymap="Mac OS X 10.5+" replace-all="true"/>-->
         <!--        </action>-->
 
         <!--        <action id="com.itangcent.idea.easy_api.actions.MultipleExportAction"-->
