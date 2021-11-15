@@ -1,28 +1,22 @@
 package org.metersphere.gui;
 
+import com.alibaba.fastjson.JSONObject;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ComponentManager;
-import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VirtualFile;
-import org.apache.commons.codec.binary.Base64;
+import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 import org.metersphere.AppSettingService;
 import org.metersphere.state.AppSettingState;
-import org.metersphere.utils.CodingUtil;
+import org.metersphere.utils.MSApiUtil;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.*;
 import java.awt.event.*;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.UUID;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import static org.metersphere.utils.MSApiUtil.test;
+
+@Data
 public class AppSettingComponent {
 
     private JPanel mainSettingPanel;
@@ -31,14 +25,34 @@ public class AppSettingComponent {
     private JPasswordField secretkey;
     private JButton testCon;
     private JTabbedPane settingPanel;
+    private JComboBox apiType;
+    private JComboBox projectId;
+    private JComboBox moduleId;
+    private JComboBox modeId;
     private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
 
     public AppSettingComponent() {
-        meterSphereAddress.setText(appSettingService.getState().getMeterSphereAddress());
-        accesskey.setText(appSettingService.getState().getAccesskey());
-        secretkey.setText(appSettingService.getState().getSecretkey());
+        AppSettingState appSettingState = appSettingService.getState();
+        meterSphereAddress.setText(appSettingState.getMeterSphereAddress());
+        accesskey.setText(appSettingState.getAccesskey());
+        secretkey.setText(appSettingState.getSecretkey());
+        modeId.setSelectedItem(appSettingState.getModeId());
+        apiType.setSelectedItem(appSettingState.getApiType());
+        if (appSettingState.getProjectNameList() != null) {
+            appSettingState.getProjectNameList().forEach(p -> projectId.addItem(p));
+        }
+        if (StringUtils.isNotBlank(appSettingState.getProjectId())) {
+            projectId.setSelectedItem(appSettingState.getProjectId());
+        }
+        if (appSettingState.getModuleNameList() != null) {
+            appSettingState.getModuleNameList().forEach(p -> moduleId.addItem(p));
+        }
+        if (StringUtils.isNotBlank(appSettingState.getModuleId())) {
+            moduleId.setSelectedItem(appSettingState.getModuleId());
+        }
         testCon.addActionListener(actionEvent -> {
-            if (test()) {
+            if (test(appSettingState)) {
+                init();
                 Messages.showInfoMessage("Connect success!", "Info");
             } else {
                 Messages.showInfoMessage("Connect fail!", "Info");
@@ -47,61 +61,90 @@ public class AppSettingComponent {
         meterSphereAddress.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                appSettingService.getState().setMeterSphereAddress(meterSphereAddress.getText());
+                appSettingState.setMeterSphereAddress(meterSphereAddress.getText());
             }
         });
         accesskey.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                appSettingService.getState().setAccesskey(accesskey.getText());
+                appSettingState.setAccesskey(accesskey.getText());
             }
         });
         secretkey.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
-                appSettingService.getState().setSecretkey(secretkey.getText());
+                appSettingState.setSecretkey(secretkey.getText());
             }
         });
+        projectId.addItemListener(itemEvent -> {
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
+                if (projectId.getSelectedItem() != null && StringUtils.isNotBlank(projectId.getSelectedItem().toString())) {
+                    if (appSettingState.getProjectList().size() > 0) {
+                        String pId = ((JSONObject) appSettingState.getProjectList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(itemEvent.getItem().toString())).findFirst().get()).getString("id");
+                        initModule(pId);
+                    }
+                }
+            }
+        });
+        projectId.addActionListener(actionEvent -> {
+            if (projectId.getItemCount() > 0)
+                appSettingState.setProjectId(projectId.getSelectedItem().toString());
+        });
+        moduleId.addActionListener(actionEvent -> {
+            if (moduleId.getItemCount() > 0)
+                appSettingState.setModuleId(moduleId.getSelectedItem().toString());
+        });
+        modeId.addActionListener(actionEvent -> {
+            appSettingState.setModeId(modeId.getSelectedItem().toString());
+        });
+    }
+
+    private void init() {
+        AppSettingState appSettingState = appSettingService.getState();
+
+        //初始化项目
+        JSONObject project = MSApiUtil.getProjectList(appSettingState);
+        if (project != null && project.getBoolean("success")) {
+            appSettingState.setProjectList(project.getJSONArray("data"));
+            appSettingState.setProjectNameList(appSettingState.getProjectList().stream().map(p -> ((JSONObject) p).getString("name")).collect(Collectors.toList()));
+            appSettingState.setProjectId(null);
+            appSettingState.setProjectIdList(null);
+        }
+        //设置下拉选择框
+        projectId.removeAllItems();
+        for (String s : appSettingState.getProjectNameList()) {
+            projectId.addItem(s);
+        }
+
+        //初始化模块
+//        initModule(project.getJSONArray("data").getJSONObject(0).getString("id"));
+    }
+
+    /**
+     * ms 项目id
+     *
+     * @param msProjectId
+     */
+    private void initModule(String msProjectId) {
+        AppSettingState appSettingState = appSettingService.getState();
+
+        //初始化模块
+        JSONObject module = MSApiUtil.getModuleList(appSettingState, msProjectId, appSettingState.getApiType());
+
+        if (module != null && module.getBoolean("success")) {
+            appSettingState.setModuleList(module.getJSONArray("data"));
+            appSettingState.setModuleNameList(appSettingState.getModuleList().stream().map(p -> ((JSONObject) p).getString("name")).collect(Collectors.toList()));
+            appSettingState.setModuleId(null);
+            appSettingState.setModuleIdList(null);
+        }
+
+        moduleId.removeAllItems();
+        for (String s : appSettingState.getModuleNameList()) {
+            moduleId.addItem(s);
+        }
     }
 
     public JPanel getSettingPanel() {
         return this.mainSettingPanel;
-    }
-
-    public boolean test() {
-        try {
-            URL url = new URL(String.format("%s/license/valid", meterSphereAddress.getText()));
-            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-            urlConnection.setRequestProperty("Accept", "application/json;charset=UTF-8");
-            urlConnection.setRequestProperty("accessKey", accesskey.getText());
-            String signature = aesEncrypt(accesskey.getText() + "|" + UUID.randomUUID().toString() + "|" + System.currentTimeMillis(), secretkey.getText(), accesskey.getText());
-            urlConnection.setRequestProperty("signature", signature);
-            InputStream is = urlConnection.getInputStream();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int len = 0;
-            while (-1 != (len = is.read(buffer))) {
-                baos.write(buffer, 0, len);
-                baos.flush();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
-    public String getSinature() throws Exception {
-        return aesEncrypt(accesskey.getText() + "|" + UUID.randomUUID().toString() + "|" + System.currentTimeMillis(), secretkey.getText(), accesskey.getText());
-    }
-
-    public static String aesEncrypt(String src, String secretKey, String iv) throws Exception {
-        byte[] raw = secretKey.getBytes("UTF-8");
-        SecretKeySpec secretKeySpec = new SecretKeySpec(raw, "AES");
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        IvParameterSpec iv1 = new IvParameterSpec(iv.getBytes());
-        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, iv1);
-        byte[] encrypted = cipher.doFinal(src.getBytes("UTF-8"));
-        return Base64.encodeBase64String(encrypted);
     }
 }

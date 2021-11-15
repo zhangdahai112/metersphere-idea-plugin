@@ -7,27 +7,36 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiJavaFile;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.FileEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.FormBodyPart;
+import org.apache.http.entity.mime.FormBodyPartBuilder;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.metersphere.AppSettingService;
 import org.metersphere.constants.PluginConstants;
 import org.metersphere.gui.AppSettingComponent;
 import org.metersphere.model.PostmanModel;
+import org.metersphere.state.AppSettingState;
+import org.metersphere.utils.MSApiUtil;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public class MeterSphereExporter implements IExporter {
@@ -40,7 +49,7 @@ public class MeterSphereExporter implements IExporter {
     public boolean export(PsiElement psiElement) {
         try {
 
-            if (!appSettingComponent.test()) {
+            if (!MSApiUtil.test(appSettingService.getState())) {
                 Messages.showInfoMessage("please input corrent ak sk!", PluginConstants.MessageTitle.Info.name());
                 return false;
             }
@@ -91,23 +100,36 @@ public class MeterSphereExporter implements IExporter {
         }
     }
 
-    private boolean uploadToServer(File file) throws Exception {
+    private boolean uploadToServer(File file) throws UnsupportedEncodingException {
 
         CloseableHttpClient httpclient = HttpClients.createDefault();
-        String url = appSettingService.getState().getMeterSphereAddress() + "/api/definition/import";
+        AppSettingState state = appSettingService.getState();
+        String url = state.getMeterSphereAddress() + "/api/definition/import";
         HttpPost httpPost = new HttpPost(url);// 创建httpPost
         httpPost.setHeader("Accept", "application/json, text/plain, */*");
-        httpPost.setHeader("Content-Type", "multipart/form-data");
+//        httpPost.setHeader("Content-Type", "multipart/form-data");
         httpPost.setHeader("accesskey", appSettingService.getState().getAccesskey());
-        httpPost.setHeader("signature", appSettingComponent.getSinature());
+        httpPost.setHeader("signature", MSApiUtil.getSinature(appSettingService.getState()));
         CloseableHttpResponse response = null;
 
-        httpPost.setEntity(new FileEntity(file));
+        JSONObject param = new JSONObject();
+        param.put("modeId", state.getModeId());
+        param.put("moduleId", ((JSONObject) state.getModuleList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(state.getModuleId())).findFirst().get()).getString("id"));
+        param.put("platform", "Postman");
+        param.put("model", "definition");
+        param.put("projectId", ((JSONObject) state.getProjectList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(state.getProjectId())).findFirst().get()).getString("id"));
+        JSONObject uid = new JSONObject();
+        uid.put("uid", "sadasdasd");
+        param.put("file", uid);
+        HttpEntity formEntity = MultipartEntityBuilder.create().addBinaryBody("file", file,  ContentType.APPLICATION_JSON, null)
+                .addBinaryBody("request", param.toJSONString().getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON, "pm.json").build();
+
+        httpPost.setEntity(formEntity);
         try {
             response = httpclient.execute(httpPost);
             StatusLine status = response.getStatusLine();
-            int state = status.getStatusCode();
-            if (state == HttpStatus.SC_OK || state == HttpStatus.SC_CREATED) {
+            int statusCode = status.getStatusCode();
+            if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_CREATED) {
                 return true;
             } else {
                 return false;
