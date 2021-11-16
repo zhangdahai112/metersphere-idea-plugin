@@ -159,16 +159,21 @@ public class PostmanExporter implements IExporter {
                             PostmanModel.ItemBean.RequestBean requestBean = new PostmanModel.ItemBean.RequestBean();
                             //请求类型
                             requestBean.setMethod(getMethod(mapO.get()));
+                            if (requestBean.getMethod().equalsIgnoreCase("Unknown Method")) {
+                                //MessageMapping 等不是 rest 接口
+                                isRequest = false;
+                                continue;
+                            }
                             //url
                             PostmanModel.ItemBean.RequestBean.UrlBean urlBean = new PostmanModel.ItemBean.RequestBean.UrlBean();
                             urlBean.setHost("{{" + e1.getProject().getName() + "}}");
                             String urlStr = Optional.ofNullable(getUrlFromAnnotation(e1)).orElse("");
                             urlBean.setPath(getPath(urlStr, basePath));
                             urlBean.setQuery(getQuery(e1, requestBean));
-                            if(withBasePath) {
-                                urlBean.setRaw(urlBean.getHost() + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
-                            }else{
-                                urlBean.setRaw((urlStr.startsWith("/") ? urlStr : "/" + urlStr));
+                            if (withBasePath) {
+                                urlBean.setRaw(urlBean.getHost() + "/" + basePath + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
+                            } else {
+                                urlBean.setRaw("/" + basePath + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
                             }
                             requestBean.setUrl(urlBean);
                             //header

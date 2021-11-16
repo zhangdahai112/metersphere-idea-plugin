@@ -13,12 +13,7 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.FormBodyPart;
-import org.apache.http.entity.mime.FormBodyPartBuilder;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.ContentBody;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.metersphere.AppSettingService;
@@ -29,14 +24,12 @@ import org.metersphere.state.AppSettingState;
 import org.metersphere.utils.MSApiUtil;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public class MeterSphereExporter implements IExporter {
@@ -107,7 +100,6 @@ public class MeterSphereExporter implements IExporter {
         String url = state.getMeterSphereAddress() + "/api/definition/import";
         HttpPost httpPost = new HttpPost(url);// 创建httpPost
         httpPost.setHeader("Accept", "application/json, text/plain, */*");
-//        httpPost.setHeader("Content-Type", "multipart/form-data");
         httpPost.setHeader("accesskey", appSettingService.getState().getAccesskey());
         httpPost.setHeader("signature", MSApiUtil.getSinature(appSettingService.getState()));
         CloseableHttpResponse response = null;
@@ -118,11 +110,8 @@ public class MeterSphereExporter implements IExporter {
         param.put("platform", "Postman");
         param.put("model", "definition");
         param.put("projectId", ((JSONObject) state.getProjectList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(state.getProjectId())).findFirst().get()).getString("id"));
-        JSONObject uid = new JSONObject();
-        uid.put("uid", "sadasdasd");
-        param.put("file", uid);
-        HttpEntity formEntity = MultipartEntityBuilder.create().addBinaryBody("file", file,  ContentType.APPLICATION_JSON, null)
-                .addBinaryBody("request", param.toJSONString().getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON, "pm.json").build();
+        HttpEntity formEntity = MultipartEntityBuilder.create().addBinaryBody("file", file, ContentType.APPLICATION_JSON, null)
+                .addBinaryBody("request", param.toJSONString().getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON, null).build();
 
         httpPost.setEntity(formEntity);
         try {
@@ -135,7 +124,6 @@ public class MeterSphereExporter implements IExporter {
                 return false;
             }
         } catch (Exception e) {
-            System.out.println(e);
         } finally {
             if (response != null) {
                 try {
