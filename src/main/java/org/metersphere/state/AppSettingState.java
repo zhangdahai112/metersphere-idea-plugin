@@ -1,6 +1,5 @@
 package org.metersphere.state;
 
-import com.alibaba.fastjson.JSONArray;
 import lombok.Data;
 
 import java.util.List;
@@ -13,15 +12,15 @@ public class AppSettingState {
     private List<String> apiTypeList;
     private String apiType = "http";
 
-    private List<String> projectIdList;
     private List<String> projectNameList;
-    private JSONArray projectList;
+    private List<MSProject> projectList;
     private String projectId;
+    private String projectName;
 
-    private List<String> moduleIdList;
-    private JSONArray moduleList;
+    private List<MSModule> moduleList;
     private List<String> moduleNameList;
     private String moduleId;
+    private String moduleName;
 
     private String modeId = "http";
 }

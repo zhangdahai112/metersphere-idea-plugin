@@ -18,7 +18,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.metersphere.AppSettingService;
 import org.metersphere.constants.PluginConstants;
-import org.metersphere.gui.AppSettingComponent;
 import org.metersphere.model.PostmanModel;
 import org.metersphere.state.AppSettingState;
 import org.metersphere.utils.MSApiUtil;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 public class MeterSphereExporter implements IExporter {
     private Logger logger = Logger.getInstance(MeterSphereExporter.class);
     private PostmanExporter postmanExporter = new PostmanExporter();
-    private AppSettingComponent appSettingComponent = ApplicationManager.getApplication().getService(AppSettingComponent.class);
     private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
 
     @Override
@@ -106,10 +104,10 @@ public class MeterSphereExporter implements IExporter {
 
         JSONObject param = new JSONObject();
         param.put("modeId", state.getModeId());
-        param.put("moduleId", ((JSONObject) state.getModuleList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(state.getModuleId())).findFirst().get()).getString("id"));
+        param.put("moduleId", state.getModuleList().stream().filter(p -> p.getName().equalsIgnoreCase(state.getModuleName())).findFirst().get().getId());
         param.put("platform", "Postman");
         param.put("model", "definition");
-        param.put("projectId", ((JSONObject) state.getProjectList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(state.getProjectId())).findFirst().get()).getString("id"));
+        param.put("projectId", state.getProjectList().stream().filter(p -> p.getName().equalsIgnoreCase(state.getProjectName())).findFirst().get().getId());
         HttpEntity formEntity = MultipartEntityBuilder.create().addBinaryBody("file", file, ContentType.APPLICATION_JSON, null)
                 .addBinaryBody("request", param.toJSONString().getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON, null).build();
 

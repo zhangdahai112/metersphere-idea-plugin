@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.metersphere.state.AppSettingState;
 
-@State(name = "metersphereState", storages = {@Storage("metersphere.json")})
+@State(name = "metersphereState", storages = {@Storage("msstore.xml")})
 public class AppSettingService implements PersistentStateComponent<AppSettingState> {
     private AppSettingState appSettingState = new AppSettingState();
 

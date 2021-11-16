@@ -1,17 +1,23 @@
 package org.metersphere.gui;
 
 import com.alibaba.fastjson.JSONObject;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.ui.Messages;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.metersphere.AppSettingService;
 import org.metersphere.state.AppSettingState;
+import org.metersphere.state.MSModule;
+import org.metersphere.state.MSProject;
 import org.metersphere.utils.MSApiUtil;
 
 import javax.swing.*;
-import java.awt.event.*;
-import java.util.Optional;
+import java.awt.event.ItemEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.metersphere.utils.MSApiUtil.test;
@@ -26,10 +32,11 @@ public class AppSettingComponent {
     private JButton testCon;
     private JTabbedPane settingPanel;
     private JComboBox apiType;
-    private JComboBox projectId;
-    private JComboBox moduleId;
+    private JComboBox projectNameCB;
+    private JComboBox moduleNameCB;
     private JComboBox modeId;
     private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
+    private Gson gson = new Gson();
 
     public AppSettingComponent() {
         AppSettingState appSettingState = appSettingService.getState();
@@ -39,17 +46,21 @@ public class AppSettingComponent {
         modeId.setSelectedItem(appSettingState.getModeId());
         apiType.setSelectedItem(appSettingState.getApiType());
         if (appSettingState.getProjectNameList() != null) {
-            appSettingState.getProjectNameList().forEach(p -> projectId.addItem(p));
+            appSettingState.getProjectNameList().forEach(p -> projectNameCB.addItem(p));
         }
         if (StringUtils.isNotBlank(appSettingState.getProjectId())) {
-            projectId.setSelectedItem(appSettingState.getProjectId());
+            projectNameCB.setSelectedItem(appSettingState.getProjectId());
         }
         if (appSettingState.getModuleNameList() != null) {
-            appSettingState.getModuleNameList().forEach(p -> moduleId.addItem(p));
+            appSettingState.getModuleNameList().forEach(p -> moduleNameCB.addItem(p));
         }
-        if (StringUtils.isNotBlank(appSettingState.getModuleId())) {
-            moduleId.setSelectedItem(appSettingState.getModuleId());
+        if (StringUtils.isNotBlank(appSettingState.getProjectName())) {
+            projectNameCB.setSelectedItem(appSettingState.getProjectName());
         }
+        if (StringUtils.isNotBlank(appSettingState.getModuleName())) {
+            moduleNameCB.setSelectedItem(appSettingState.getModuleName());
+        }
+
         testCon.addActionListener(actionEvent -> {
             if (test(appSettingState)) {
                 init();
@@ -76,23 +87,23 @@ public class AppSettingComponent {
                 appSettingState.setSecretkey(secretkey.getText());
             }
         });
-        projectId.addItemListener(itemEvent -> {
+        projectNameCB.addItemListener(itemEvent -> {
             if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
-                if (projectId.getSelectedItem() != null && StringUtils.isNotBlank(projectId.getSelectedItem().toString())) {
+                if (projectNameCB.getSelectedItem() != null && StringUtils.isNotBlank(projectNameCB.getSelectedItem().toString())) {
                     if (appSettingState.getProjectList().size() > 0) {
-                        String pId = ((JSONObject) appSettingState.getProjectList().stream().filter(p -> ((JSONObject) p).getString("name").equalsIgnoreCase(itemEvent.getItem().toString())).findFirst().get()).getString("id");
+                        String pId = appSettingState.getProjectList().stream().filter(p -> (p.getName().equalsIgnoreCase(itemEvent.getItem().toString()))).findFirst().get().getId();
                         initModule(pId);
                     }
                 }
             }
         });
-        projectId.addActionListener(actionEvent -> {
-            if (projectId.getItemCount() > 0)
-                appSettingState.setProjectId(projectId.getSelectedItem().toString());
+        projectNameCB.addActionListener(actionEvent -> {
+            if (projectNameCB.getItemCount() > 0)
+                appSettingState.setProjectName(projectNameCB.getSelectedItem().toString());
         });
-        moduleId.addActionListener(actionEvent -> {
-            if (moduleId.getItemCount() > 0)
-                appSettingState.setModuleId(moduleId.getSelectedItem().toString());
+        moduleNameCB.addActionListener(actionEvent -> {
+            if (moduleNameCB.getItemCount() > 0)
+                appSettingState.setModuleName(moduleNameCB.getSelectedItem().toString());
         });
         modeId.addActionListener(actionEvent -> {
             appSettingState.setModeId(modeId.getSelectedItem().toString());
@@ -105,19 +116,17 @@ public class AppSettingComponent {
         //初始化项目
         JSONObject project = MSApiUtil.getProjectList(appSettingState);
         if (project != null && project.getBoolean("success")) {
-            appSettingState.setProjectList(project.getJSONArray("data"));
-            appSettingState.setProjectNameList(appSettingState.getProjectList().stream().map(p -> ((JSONObject) p).getString("name")).collect(Collectors.toList()));
+            appSettingState.setProjectList(gson.fromJson(gson.toJson(project.getJSONArray("data")), new TypeToken<List<MSProject>>(){}.getType()));
+            appSettingState.setProjectNameList(appSettingState.getProjectList().stream().map(p -> (p.getName())).collect(Collectors.toList()));
             appSettingState.setProjectId(null);
-            appSettingState.setProjectIdList(null);
+            appSettingState.setProjectName(null);
         }
         //设置下拉选择框
-        projectId.removeAllItems();
+        this.projectNameCB.removeAllItems();
         for (String s : appSettingState.getProjectNameList()) {
-            projectId.addItem(s);
+            this.projectNameCB.addItem(s);
         }
 
-        //初始化模块
-//        initModule(project.getJSONArray("data").getJSONObject(0).getString("id"));
     }
 
     /**
@@ -132,15 +141,15 @@ public class AppSettingComponent {
         JSONObject module = MSApiUtil.getModuleList(appSettingState, msProjectId, appSettingState.getApiType());
 
         if (module != null && module.getBoolean("success")) {
-            appSettingState.setModuleList(module.getJSONArray("data"));
-            appSettingState.setModuleNameList(appSettingState.getModuleList().stream().map(p -> ((JSONObject) p).getString("name")).collect(Collectors.toList()));
+            appSettingState.setModuleList(gson.fromJson(gson.toJson(module.getJSONArray("data")), new TypeToken<List<MSModule>>(){}.getType()));
+            appSettingState.setModuleNameList(appSettingState.getModuleList().stream().map(p -> (p.getName())).collect(Collectors.toList()));
             appSettingState.setModuleId(null);
-            appSettingState.setModuleIdList(null);
+            appSettingState.setModuleName(null);
         }
 
-        moduleId.removeAllItems();
+        this.moduleNameCB.removeAllItems();
         for (String s : appSettingState.getModuleNameList()) {
-            moduleId.addItem(s);
+            this.moduleNameCB.addItem(s);
         }
     }
 

@@ -141,7 +141,7 @@
                       <text value="project"/>
                     </properties>
                   </component>
-                  <component id="1f489" class="javax.swing.JComboBox" binding="projectId">
+                  <component id="1f489" class="javax.swing.JComboBox" binding="projectNameCB">
                     <constraints>
                       <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
                     </constraints>
@@ -157,7 +157,7 @@
                       <text value="module"/>
                     </properties>
                   </component>
-                  <component id="a0577" class="javax.swing.JComboBox" binding="moduleId">
+                  <component id="a0577" class="javax.swing.JComboBox" binding="moduleNameCB">
                     <constraints>
                       <grid row="3" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
                     </constraints>
