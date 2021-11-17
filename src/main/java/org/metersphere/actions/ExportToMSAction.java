@@ -15,6 +15,6 @@ public class ExportToMSAction extends AnAction {
             return;
         }
         String source = "ms";
-        ExporterFactory.export(source, event.getData(CommonDataKeys.PSI_ELEMENT).getOriginalElement());
+        ExporterFactory.export(source, event);
     }
 }

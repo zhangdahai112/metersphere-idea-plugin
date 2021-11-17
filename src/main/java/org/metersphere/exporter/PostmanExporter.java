@@ -90,11 +90,11 @@ public class PostmanExporter implements IExporter {
     }
 
     public List<PsiJavaFile> getFile(PsiElement psiElement, List<PsiJavaFile> files) {
-        if (psiElement instanceof PsiDirectoryImpl) {
+        if (psiElement instanceof PsiDirectory) {
             Arrays.stream(psiElement.getChildren()).forEach(p -> {
                 if (p instanceof PsiJavaFile) {
                     files.add((PsiJavaFile) p);
-                } else if (p instanceof PsiDirectoryImpl && ((PsiDirectoryImpl) p).canNavigate()) {
+                } else if (p instanceof PsiDirectory) {
                     getFile(p, files);
                 }
             });
@@ -111,7 +111,7 @@ public class PostmanExporter implements IExporter {
     public List<PostmanModel> transform(List<PsiJavaFile> files, boolean withBasePath) {
         List<PostmanModel> models = new LinkedList<>();
         files.forEach(f -> {
-            logger.info(f.getText() + "...........");
+                logger.info(f.getText() + "...........");
             PsiClass controllerClass = PsiTreeUtil.findChildOfType(f, PsiClass.class);
             if (controllerClass != null) {
                 PostmanModel model = new PostmanModel();

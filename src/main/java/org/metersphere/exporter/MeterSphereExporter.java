@@ -91,7 +91,7 @@ public class MeterSphereExporter implements IExporter {
         }
     }
 
-    private boolean uploadToServer(File file) throws UnsupportedEncodingException {
+    private boolean uploadToServer(File file) {
 
         CloseableHttpClient httpclient = HttpClients.createDefault();
         AppSettingState state = appSettingService.getState();
