@@ -4,19 +4,19 @@
     <vendor email="dahai.zhang@fit2cloud.com" url="https://metersphere.io/">FIT2CLOUDk</vendor>
 
     <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
+    Support export api to MeterSphere.<br>
     ]]></description>
 
-    <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
-         on how to target different products -->
+    <change-notes><![CDATA[<ul>
+        <li><b>1.0.0</b> support export Http api to MeterSphere.</li>
+      </ul>]]></change-notes>
+
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable parentId="other" instance="org.metersphere.AppSettingConfigurable"
                                  id="org.metersphere.AppSettingConfigurable"
                                  displayName="MeterSphere"/>
-        <!--        <applicationService serviceImplementation="org.intellij.sdk.settings.AppSettingsState"/>-->
     </extensions>
 
     <actions>
@@ -37,14 +37,14 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </group>
 
-        <action id="PostmanAction"
-                class="org.metersphere.actions.ExportToPostmanAction" text="ExportToPostman"
-                description="ExportToPostman">
-            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>
-            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>
-            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>
-            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>
-        </action>
+        <!--        <action id="PostmanAction"-->
+        <!--                class="org.metersphere.actions.ExportToPostmanAction" text="ExportToPostman"-->
+        <!--                description="ExportToPostman">-->
+        <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
+        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
+        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
+        <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
+        <!--        </action>-->
 
         <action id="MSAction"
                 class="org.metersphere.actions.ExportToMSAction" text="ExportToMeterSphere"
