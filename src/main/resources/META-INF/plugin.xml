@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>org.metersphere.Metersphere</id>
     <name>MeterSphere</name>
-    <vendor email="dahai.zhang@fit2cloud.com" url="https://metersphere.io/">FIT2CLOUDk</vendor>
+    <vendor email="dahai.zhang@fit2cloud.com" url="https://metersphere.io/">FIT2CLOUD</vendor>
 
     <description><![CDATA[
     Support export api to MeterSphere.<br>

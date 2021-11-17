@@ -14,9 +14,7 @@ import org.metersphere.state.MSProject;
 import org.metersphere.utils.MSApiUtil;
 
 import javax.swing.*;
-import java.awt.event.ItemEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +33,7 @@ public class AppSettingComponent {
     private JComboBox projectNameCB;
     private JComboBox moduleNameCB;
     private JComboBox modeId;
+    private JButton syncButton;
     private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
     private Gson gson = new Gson();
 
@@ -63,7 +62,6 @@ public class AppSettingComponent {
 
         testCon.addActionListener(actionEvent -> {
             if (test(appSettingState)) {
-                init();
                 Messages.showInfoMessage("Connect success!", "Info");
             } else {
                 Messages.showInfoMessage("Connect fail!", "Info");
@@ -108,6 +106,14 @@ public class AppSettingComponent {
         modeId.addActionListener(actionEvent -> {
             appSettingState.setModeId(modeId.getSelectedItem().toString());
         });
+        syncButton.addActionListener(actionEvent -> {
+            if (test(appSettingState)) {
+                init();
+                Messages.showInfoMessage("sync success!", "Info");
+            } else {
+                Messages.showInfoMessage("sync fail!", "Info");
+            }
+        });
     }
 
     private void init() {
@@ -116,7 +122,8 @@ public class AppSettingComponent {
         //初始化项目
         JSONObject project = MSApiUtil.getProjectList(appSettingState);
         if (project != null && project.getBoolean("success")) {
-            appSettingState.setProjectList(gson.fromJson(gson.toJson(project.getJSONArray("data")), new TypeToken<List<MSProject>>(){}.getType()));
+            appSettingState.setProjectList(gson.fromJson(gson.toJson(project.getJSONArray("data")), new TypeToken<List<MSProject>>() {
+            }.getType()));
             appSettingState.setProjectNameList(appSettingState.getProjectList().stream().map(p -> (p.getName())).collect(Collectors.toList()));
             appSettingState.setProjectId(null);
             appSettingState.setProjectName(null);
@@ -141,7 +148,8 @@ public class AppSettingComponent {
         JSONObject module = MSApiUtil.getModuleList(appSettingState, msProjectId, appSettingState.getApiType());
 
         if (module != null && module.getBoolean("success")) {
-            appSettingState.setModuleList(gson.fromJson(gson.toJson(module.getJSONArray("data")), new TypeToken<List<MSModule>>(){}.getType()));
+            appSettingState.setModuleList(gson.fromJson(gson.toJson(module.getJSONArray("data")), new TypeToken<List<MSModule>>() {
+            }.getType()));
             appSettingState.setModuleNameList(appSettingState.getModuleList().stream().map(p -> (p.getName())).collect(Collectors.toList()));
             appSettingState.setModuleId(null);
             appSettingState.setModuleName(null);
