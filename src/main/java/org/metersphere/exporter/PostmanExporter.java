@@ -111,7 +111,7 @@ public class PostmanExporter implements IExporter {
     public List<PostmanModel> transform(List<PsiJavaFile> files, boolean withBasePath) {
         List<PostmanModel> models = new LinkedList<>();
         files.forEach(f -> {
-                logger.info(f.getText() + "...........");
+            logger.info(f.getText() + "...........");
             PsiClass controllerClass = PsiTreeUtil.findChildOfType(f, PsiClass.class);
             if (controllerClass != null) {
                 PostmanModel model = new PostmanModel();
@@ -143,6 +143,9 @@ public class PostmanExporter implements IExporter {
                     PsiAnnotation requestMappingA = annotations.size() > 0 ? annotations.get(0) : null;
                     if (requestMappingA != null) {
                         basePath = PsiAnnotationUtil.getAnnotationValue(requestMappingA, String.class);
+                        if (StringUtils.isNotBlank(basePath) && basePath.startsWith("/")) {
+                            basePath = basePath.replaceFirst("/", "");
+                        }
                     }
 
                     Collection<PsiMethod> methodCollection = PsiTreeUtil.findChildrenOfType(controllerClass, PsiMethod.class);
