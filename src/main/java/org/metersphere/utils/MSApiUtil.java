@@ -28,16 +28,16 @@ public class MSApiUtil {
         if (StringUtils.isAnyBlank(appSettingState.getMeterSphereAddress(), appSettingState.getAccesskey(), appSettingState.getSecretkey())) {
             return false;
         }
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Accept", "application/json;charset=UTF-8");
-        headers.put("accessKey", appSettingState.getAccesskey());
-        headers.put("signature", getSinature(appSettingState));
         CloseableHttpClient httpClient = HttpFutureUtils.getOneHttpClient();
-        HttpGet httpGet = new HttpGet(String.format("%s/currentUser", appSettingState.getMeterSphereAddress()));
-        for (String s : headers.keySet()) {
-            httpGet.addHeader(s, headers.get(s));
-        }
         try {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Accept", "application/json;charset=UTF-8");
+            headers.put("accessKey", appSettingState.getAccesskey());
+            headers.put("signature", getSinature(appSettingState));
+            HttpGet httpGet = new HttpGet(String.format("%s/currentUser", appSettingState.getMeterSphereAddress()));
+            for (String s : headers.keySet()) {
+                httpGet.addHeader(s, headers.get(s));
+            }
             HttpResponse response = httpClient.execute(httpGet);
             if (response.getStatusLine().getStatusCode() == 200) {
                 return true;
@@ -70,10 +70,10 @@ public class MSApiUtil {
      */
     public static JSONObject getProjectList(AppSettingState appSettingState) {
         CloseableHttpClient httpClient = HttpFutureUtils.getOneHttpClient();
-        HttpGet httpGet = new HttpGet(appSettingState.getMeterSphereAddress() + "/project/listAll");
-        httpGet.addHeader("accessKey", appSettingState.getAccesskey());
-        httpGet.addHeader("signature", getSinature(appSettingState));
         try {
+            HttpGet httpGet = new HttpGet(appSettingState.getMeterSphereAddress() + "/project/listAll");
+            httpGet.addHeader("accessKey", appSettingState.getAccesskey());
+            httpGet.addHeader("signature", getSinature(appSettingState));
             CloseableHttpResponse response = httpClient.execute(httpGet);
             if (response.getStatusLine().getStatusCode() == 200) {
                 return JSONObject.parseObject(EntityUtils.toString(response.getEntity()));
@@ -101,10 +101,10 @@ public class MSApiUtil {
      */
     public static JSONObject getModuleList(AppSettingState appSettingState, String projectId, String protocol) {
         CloseableHttpClient httpClient = HttpFutureUtils.getOneHttpClient();
-        HttpGet httpGet = new HttpGet(appSettingState.getMeterSphereAddress() + "/api/module/list/" + projectId + "/" + protocol);
-        httpGet.addHeader("accessKey", appSettingState.getAccesskey());
-        httpGet.addHeader("signature", getSinature(appSettingState));
         try {
+            HttpGet httpGet = new HttpGet(appSettingState.getMeterSphereAddress() + "/api/module/list/" + projectId + "/" + protocol);
+            httpGet.addHeader("accessKey", appSettingState.getAccesskey());
+            httpGet.addHeader("signature", getSinature(appSettingState));
             CloseableHttpResponse response = httpClient.execute(httpGet);
             if (response.getStatusLine().getStatusCode() == 200) {
                 return JSONObject.parseObject(EntityUtils.toString(response.getEntity()));

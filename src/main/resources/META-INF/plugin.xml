@@ -38,8 +38,8 @@
         </group>
 
         <action id="MSAction"
-                class="org.metersphere.actions.ExportToMSAction" text="ExportToMeterSphere"
-                description="ExportToMeterSphere">
+                class="org.metersphere.actions.ExportToMSAction" text="Export MeterSphere"
+                description="Export MeterSphere">
             <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>
             <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>
             <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>
