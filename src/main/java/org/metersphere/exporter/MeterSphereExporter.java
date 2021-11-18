@@ -20,6 +20,7 @@ import org.metersphere.AppSettingService;
 import org.metersphere.constants.PluginConstants;
 import org.metersphere.model.PostmanModel;
 import org.metersphere.state.AppSettingState;
+import org.metersphere.utils.HttpFutureUtils;
 import org.metersphere.utils.MSApiUtil;
 
 import java.io.BufferedWriter;
@@ -96,7 +97,7 @@ public class MeterSphereExporter implements IExporter {
 
     private boolean uploadToServer(File file) {
 
-        CloseableHttpClient httpclient = HttpClients.createDefault();
+        CloseableHttpClient httpclient = HttpFutureUtils.getOneHttpClient();
         AppSettingState state = appSettingService.getState();
         String url = state.getMeterSphereAddress() + "/api/definition/import";
         HttpPost httpPost = new HttpPost(url);// 创建httpPost
@@ -106,7 +107,7 @@ public class MeterSphereExporter implements IExporter {
         CloseableHttpResponse response = null;
 
         JSONObject param = new JSONObject();
-        param.put("modeId", state.getModeId());
+        param.put("modeId", getModeId(state.getModeId()));
         param.put("moduleId", state.getModuleList().stream().filter(p -> p.getName().equalsIgnoreCase(state.getModuleName())).findFirst().get().getId());
         param.put("platform", "Postman");
         param.put("model", "definition");
@@ -141,5 +142,12 @@ public class MeterSphereExporter implements IExporter {
             }
         }
         return false;
+    }
+
+    private String getModeId(String modeId) {
+        if ("覆盖".equalsIgnoreCase(modeId)) {
+            return "fullCoverage";
+        }
+        return "incrementalMerge";
     }
 }
