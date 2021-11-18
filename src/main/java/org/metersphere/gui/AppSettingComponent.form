@@ -179,8 +179,8 @@
                     </constraints>
                     <properties>
                       <model>
-                        <item value="不覆盖"/>
                         <item value="覆盖"/>
+                        <item value="不覆盖"/>
                       </model>
                     </properties>
                   </component>
