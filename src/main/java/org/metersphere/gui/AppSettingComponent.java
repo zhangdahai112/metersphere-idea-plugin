@@ -109,15 +109,17 @@ public class AppSettingComponent {
         });
         syncButton.addActionListener(actionEvent -> {
             if (test(appSettingState)) {
-                init();
-                Messages.showInfoMessage("sync success!", "Info");
+                if (init())
+                    Messages.showInfoMessage("sync success!", "Info");
+                else
+                    Messages.showInfoMessage("sync fail!", "Info");
             } else {
-                Messages.showInfoMessage("sync fail!", "Info");
+                Messages.showInfoMessage("connect fail!", "Info");
             }
         });
     }
 
-    private void init() {
+    private boolean init() {
         AppSettingState appSettingState = appSettingService.getState();
 
         //初始化项目
@@ -130,14 +132,15 @@ public class AppSettingComponent {
             appSettingState.setProjectName(null);
         } else {
             logger.error("get project failed!");
-            return;
+            Messages.showInfoMessage("sync fail! getProjectList error!", "Info");
+            return false;
         }
         //设置下拉选择框
         this.projectNameCB.removeAllItems();
         for (String s : appSettingState.getProjectNameList()) {
             this.projectNameCB.addItem(s);
         }
-
+        return true;
     }
 
     /**
@@ -145,7 +148,7 @@ public class AppSettingComponent {
      *
      * @param msProjectId
      */
-    private void initModule(String msProjectId) {
+    private boolean initModule(String msProjectId) {
         AppSettingState appSettingState = appSettingService.getState();
 
         //初始化模块
@@ -159,13 +162,14 @@ public class AppSettingComponent {
             appSettingState.setModuleName(null);
         } else {
             logger.error("get module failed!");
-            return;
+            return false;
         }
 
         this.moduleNameCB.removeAllItems();
         for (String s : appSettingState.getModuleNameList()) {
             this.moduleNameCB.addItem(s);
         }
+        return true;
     }
 
     public JPanel getSettingPanel() {
