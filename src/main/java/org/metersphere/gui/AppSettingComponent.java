@@ -132,7 +132,6 @@ public class AppSettingComponent {
             appSettingState.setProjectName(null);
         } else {
             logger.error("get project failed!");
-            Messages.showInfoMessage("sync fail! getProjectList error!", "Info");
             return false;
         }
         //设置下拉选择框
