@@ -122,18 +122,19 @@ public class MeterSphereExporter implements IExporter {
                 return false;
             }
         } catch (Exception e) {
+            logger.error("上传至 MS 失败！", e);
         } finally {
             if (response != null) {
                 try {
                     response.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.error("关闭 response 失败！", e);
                 }
             }
             try {
                 httpclient.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("关闭 httpclient 失败！", e);
             }
         }
         return false;
