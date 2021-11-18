@@ -141,6 +141,8 @@ public class PostmanExporter implements IExporter {
                         basePath = PsiAnnotationUtil.getAnnotationValue(requestMappingA, String.class);
                         if (StringUtils.isNotBlank(basePath) && basePath.startsWith("/")) {
                             basePath = basePath.replaceFirst("/", "");
+                        } else {
+                            basePath = "";
                         }
                     }
 
@@ -169,10 +171,12 @@ public class PostmanExporter implements IExporter {
                             String urlStr = Optional.ofNullable(getUrlFromAnnotation(e1)).orElse("");
                             urlBean.setPath(getPath(urlStr, basePath));
                             urlBean.setQuery(getQuery(e1, requestBean));
+
+                            String rawPre = (StringUtils.isNotBlank(basePath) ? "/" + basePath : "");
                             if (withBasePath) {
-                                urlBean.setRaw(urlBean.getHost() + "/" + basePath + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
+                                urlBean.setRaw(urlBean.getHost() + rawPre + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
                             } else {
-                                urlBean.setRaw("/" + basePath + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
+                                urlBean.setRaw(rawPre + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
                             }
                             requestBean.setUrl(urlBean);
                             //header
