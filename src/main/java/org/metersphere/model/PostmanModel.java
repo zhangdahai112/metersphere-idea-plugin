@@ -1,5 +1,6 @@
 package org.metersphere.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -33,6 +34,15 @@ public class PostmanModel implements Serializable {
                 private String mode;
                 private OptionsBean options;
                 private String raw;
+                private List<FormDataBean> formdata;
+
+                @Data
+                @AllArgsConstructor
+                public static class FormDataBean implements Serializable {
+                    private String key;
+                    private String type;
+                    private String description;
+                }
 
                 @Data
                 public static class OptionsBean implements Serializable {

@@ -32,7 +32,7 @@
                   </grid>
                 </constraints>
                 <properties>
-                  <text value="apiServer"/>
+                  <text value="apiserver"/>
                 </properties>
               </component>
               <vspacer id="1d61b">

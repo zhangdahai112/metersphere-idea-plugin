@@ -30,21 +30,21 @@ public class PluginConstants {
 
     public static final Map<String, Object> simpleJavaTypeValue = new HashMap<>() {{
         put("int", 0);
-        put("Integer", 0);
+        put("java.lang.Integer", 0);
         put("short", 0);
-        put("Short", 0);
+        put("java.lang.Short", 0);
         put("byte", 0);
-        put("Byte", 0);
+        put("java.lang.Byte", 0);
         put("long", 0);
-        put("Long", 0);
+        put("java.lang.Long", 0);
         put("char", "");
-        put("Character", "");
+        put("java.lang.Character", "");
         put("float", 0.0f);
-        put("Float", 0.0f);
+        put("java.lang.Float", 0.0f);
         put("double", 0.0d);
-        put("Double", 0.0d);
+        put("java.lang.Double", 0.0d);
         put("boolean", false);
-        put("Boolean", false);
+        put("java.lang.Boolean", false);
         put("java.lang.String", "");
     }};
 

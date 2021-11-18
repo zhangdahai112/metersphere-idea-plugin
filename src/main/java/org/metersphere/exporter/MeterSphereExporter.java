@@ -69,7 +69,7 @@ public class MeterSphereExporter implements IExporter {
             JSONObject info = new JSONObject();
             info.put("schema", "https://schema.getpostman.com/json/collection/v2.1.0/collection.json");
             String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            info.put("name", psiElement.getProject().getName() + dateTime);
+            info.put("name", psiElement.getProject().getName());
             info.put("description", "exported at " + dateTime);
             jsonObject.put("info", info);
             bufferedWriter.write(new Gson().toJson(jsonObject));

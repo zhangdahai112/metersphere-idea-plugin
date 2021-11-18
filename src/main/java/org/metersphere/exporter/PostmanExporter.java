@@ -4,17 +4,13 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.gson.Gson;
-import com.intellij.ide.util.TreeFileChooser;
-import com.intellij.ide.util.TreeFileChooserFactory;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDialog;
 import com.intellij.openapi.fileChooser.FileChooserFactory;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.file.PsiDirectoryImpl;
 import com.intellij.psi.impl.source.PsiClassImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -69,7 +65,7 @@ public class PostmanExporter implements IExporter {
             JSONObject info = new JSONObject();
             info.put("schema", "https://schema.getpostman.com/json/collection/v2.1.0/collection.json");
             String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            info.put("name", psiElement.getProject().getName() + dateTime);
+            info.put("name", psiElement.getProject().getName());
             info.put("description", "exported at " + dateTime);
             jsonObject.put("info", info);
             bufferedWriter.write(new Gson().toJson(jsonObject));
@@ -223,13 +219,12 @@ public class PostmanExporter implements IExporter {
                             }
                             //body
                             PsiParameterList parameterList = e1.getParameterList();
+                            PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
                             for (PsiParameter pe : parameterList.getParameters()) {
                                 PsiAnnotation[] pAt = pe.getAnnotations();
                                 if (pAt != null && pAt.length != 0) {
-                                    if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestBody") != null || (pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart") == null && !PluginConstants.simpleJavaType.contains(pe.getType().getCanonicalText()))) {
-                                        PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
+                                    if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestBody") != null) {
                                         bodyBean.setMode("raw");
-                                        //:todo
                                         bodyBean.setRaw(getRaw(pe));
 
                                         PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean optionsBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean();
@@ -241,12 +236,17 @@ public class PostmanExporter implements IExporter {
                                         //隐式
                                         addRestHeader(headerBeans);
                                     }
+                                    if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart") != null) {
+                                        bodyBean.setMode("formdata");
+                                        bodyBean.setFormdata(getFromdata(bodyBean.getFormdata(), pe));
+                                        requestBean.setBody(bodyBean);
+                                        //隐式
+                                        addMultipartHeader(headerBeans);
+                                    }
                                 } else {
                                     String javaType = pe.getType().getCanonicalText();
                                     if (!PluginConstants.simpleJavaType.contains(javaType)) {
-                                        PostmanModel.ItemBean.RequestBean.BodyBean bodyBean = new PostmanModel.ItemBean.RequestBean.BodyBean();
                                         bodyBean.setMode("raw");
-                                        //:todo
                                         bodyBean.setRaw(getRaw(pe));
                                         PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean optionsBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean();
                                         PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean rawBean = new PostmanModel.ItemBean.RequestBean.BodyBean.OptionsBean.RawBean();
@@ -272,25 +272,58 @@ public class PostmanExporter implements IExporter {
         return models;
     }
 
+    private List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> getFromdata(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> formdata, PsiParameter pe) {
+        PsiAnnotation repAnn = pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart");
+        String value = PsiAnnotationUtil.getAnnotationValue(repAnn, String.class);
+        if (StringUtils.isBlank(value)) {
+            value = pe.getName();
+        }
+        if (formdata == null) {
+            formdata = new ArrayList<>();
+        }
+
+        String type = getPeFormType(pe);
+        if (type.equalsIgnoreCase("file"))
+            formdata.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(value, type, null));
+        else {
+            List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> dataBeans = getFormDataBeans(pe);
+            formdata.addAll(dataBeans);
+        }
+        return formdata;
+    }
+
+    private List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> getFormDataBeans(PsiParameter pe) {
+        PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.projectScope(pe.getProject()));
+        List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param = new LinkedList<>();
+        if (psiClass != null) {
+            PsiField[] fields = psiClass.getAllFields();
+            for (PsiField field : fields) {
+                if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
+                    param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field.getName(), "text", null));
+                //这个判断对多层集合嵌套的数据类型
+            }
+        }
+
+        return param;
+    }
+
+
+    /**
+     * 获取 @RequestPart 类型 form
+     *
+     * @param pe
+     * @return
+     */
+    private String getPeFormType(PsiParameter pe) {
+        if (pe.getType().getCanonicalText().contains("File")) {
+            return "file";
+        }
+        return pe.getType().getCanonicalText();
+    }
+
     public Optional<PsiAnnotation> findMappingAnn(PsiMethod e1, Class<PsiAnnotation> psiAnnotationClass) {
         Collection<PsiAnnotation> annotations = PsiTreeUtil.findChildrenOfType(e1, PsiAnnotation.class);
         return annotations.stream().filter(a -> a.getQualifiedName().contains("Mapping")).findFirst();
-    }
-
-    public void addFormHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans) {
-        for (PostmanModel.ItemBean.RequestBean.HeaderBean headerBean : headerBeans) {
-            if (headerBean.getKey().equalsIgnoreCase("Content-Type")) {
-                headerBean.setKey("Content-Type");
-                headerBean.setValue("application/x-www-form-urlencoded");
-                headerBean.setType("text");
-                return;
-            }
-        }
-        PostmanModel.ItemBean.RequestBean.HeaderBean headerBean = new PostmanModel.ItemBean.RequestBean.HeaderBean();
-        headerBean.setKey("Content-Type");
-        headerBean.setValue("application/x-www-form-urlencoded");
-        headerBean.setType("text");
-        headerBeans.add(headerBean);
     }
 
     public List<PostmanModel.ItemBean.RequestBean.HeaderBean> removeDuplicate
@@ -315,20 +348,32 @@ public class PostmanExporter implements IExporter {
         }).filter(s -> StringUtils.isNotBlank(s)).collect(Collectors.toList());
     }
 
-    public void addRestHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans) {
+    public void addFormHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans) {
+        addHeader(headerBeans, "application/x-www-form-urlencoded");
+    }
+
+    public void addHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans, String contentType) {
         for (PostmanModel.ItemBean.RequestBean.HeaderBean headerBean : headerBeans) {
             if (headerBean.getKey().equalsIgnoreCase("Content-Type")) {
                 headerBean.setKey("Content-Type");
-                headerBean.setValue("application/json");
+                headerBean.setValue(contentType);
                 headerBean.setType("text");
                 return;
             }
         }
         PostmanModel.ItemBean.RequestBean.HeaderBean headerBean = new PostmanModel.ItemBean.RequestBean.HeaderBean();
         headerBean.setKey("Content-Type");
-        headerBean.setValue("application/json");
+        headerBean.setValue(contentType);
         headerBean.setType("text");
         headerBeans.add(headerBean);
+    }
+
+    public void addRestHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans) {
+        addHeader(headerBeans, "application/json");
+    }
+
+    public void addMultipartHeader(List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans) {
+        addHeader(headerBeans, "multipart/form-data");
     }
 
     public List<?> getQuery(PsiMethod e1, PostmanModel.ItemBean.RequestBean requestBean) {
