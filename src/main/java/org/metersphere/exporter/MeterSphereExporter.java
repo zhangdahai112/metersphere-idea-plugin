@@ -41,7 +41,7 @@ public class MeterSphereExporter implements IExporter {
         try {
 
             if (!MSApiUtil.test(appSettingService.getState())) {
-                Messages.showInfoMessage("please input corrent ak sk!", PluginConstants.MessageTitle.Info.name());
+                Messages.showInfoMessage("please input correct ak sk!", PluginConstants.MessageTitle.Info.name());
                 return false;
             }
 
