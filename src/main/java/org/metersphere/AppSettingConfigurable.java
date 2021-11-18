@@ -8,6 +8,9 @@ import org.metersphere.gui.AppSettingComponent;
 
 import javax.swing.*;
 
+/**
+ * 配置主类
+ */
 public class AppSettingConfigurable implements Configurable {
     //main setting pane
     private AppSettingComponent appSettingComponent;

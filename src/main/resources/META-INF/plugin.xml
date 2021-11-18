@@ -37,15 +37,6 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
         </group>
 
-        <!--        <action id="PostmanAction"-->
-        <!--                class="org.metersphere.actions.ExportToPostmanAction" text="ExportToPostman"-->
-        <!--                description="ExportToPostman">-->
-        <!--            <add-to-group group-id="MeterSphereCodeMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereGenerateMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereEditorLangPopupMenu" anchor="last"/>-->
-        <!--            <add-to-group group-id="MeterSphereProjectViewPopupMenu" anchor="last"/>-->
-        <!--        </action>-->
-
         <action id="MSAction"
                 class="org.metersphere.actions.ExportToMSAction" text="ExportToMeterSphere"
                 description="ExportToMeterSphere">

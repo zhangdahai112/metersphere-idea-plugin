@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +37,7 @@ public class AppSettingComponent {
     private JButton syncButton;
     private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
     private Gson gson = new Gson();
+    private Logger logger = Logger.getInstance(AppSettingComponent.class);
 
     public AppSettingComponent() {
         AppSettingState appSettingState = appSettingService.getState();
@@ -59,7 +61,6 @@ public class AppSettingComponent {
         if (StringUtils.isNotBlank(appSettingState.getModuleName())) {
             moduleNameCB.setSelectedItem(appSettingState.getModuleName());
         }
-
         testCon.addActionListener(actionEvent -> {
             if (test(appSettingState)) {
                 Messages.showInfoMessage("Connect success!", "Info");
@@ -127,6 +128,9 @@ public class AppSettingComponent {
             appSettingState.setProjectNameList(appSettingState.getProjectList().stream().map(p -> (p.getName())).collect(Collectors.toList()));
             appSettingState.setProjectId(null);
             appSettingState.setProjectName(null);
+        } else {
+            logger.error("get project failed!");
+            return;
         }
         //设置下拉选择框
         this.projectNameCB.removeAllItems();
@@ -153,6 +157,9 @@ public class AppSettingComponent {
             appSettingState.setModuleNameList(appSettingState.getModuleList().stream().map(p -> (p.getName())).collect(Collectors.toList()));
             appSettingState.setModuleId(null);
             appSettingState.setModuleName(null);
+        } else {
+            logger.error("get module failed!");
+            return;
         }
 
         this.moduleNameCB.removeAllItems();
