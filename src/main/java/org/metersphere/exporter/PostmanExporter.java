@@ -90,7 +90,7 @@ public class PostmanExporter implements IExporter {
         if (psiElement instanceof PsiDirectory) {
             Arrays.stream(psiElement.getChildren()).forEach(p -> {
                 if (p instanceof PsiJavaFile) {
-                    ProgressManager.getGlobalProgressIndicator().setText("find controller: " + ((PsiJavaFile) p).getName());
+                    ProgressManager.getGlobalProgressIndicator().setText("Found controller: " + ((PsiJavaFile) p).getName());
                     files.add((PsiJavaFile) p);
                 } else if (p instanceof PsiDirectory) {
                     getFile(p, files);
@@ -98,7 +98,7 @@ public class PostmanExporter implements IExporter {
             });
         } else {
             if (psiElement.getContainingFile() instanceof PsiJavaFile) {
-                ProgressManager.getGlobalProgressIndicator().setText("find controller: " + ((PsiJavaFile) psiElement.getContainingFile()).getName());
+                ProgressManager.getGlobalProgressIndicator().setText("Found controller: " + (psiElement.getContainingFile()).getName());
                 files.add((PsiJavaFile) psiElement.getContainingFile());
             }
         }
@@ -183,7 +183,7 @@ public class PostmanExporter implements IExporter {
                                 urlBean.setRaw(rawPre + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
                             }
                             requestBean.setUrl(urlBean);
-                            ProgressManager.getGlobalProgressIndicator().setText(String.format("find controller: %s, api: %s", f.getName(), urlBean.getRaw()));
+                            ProgressManager.getGlobalProgressIndicator().setText(String.format("Found controller: %s api: %s", f.getName(), urlBean.getRaw()));
                             //header
                             List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans = new ArrayList<>();
                             if (restController) {
