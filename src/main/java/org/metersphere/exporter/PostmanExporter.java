@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassImpl;
+import com.intellij.psi.javadoc.PsiDocToken;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import de.plushnikov.intellij.lombok.util.PsiAnnotationUtil;
@@ -160,7 +161,7 @@ public class PostmanExporter implements IExporter {
                         if (mapO.isPresent()) {
                             PostmanModel.ItemBean itemBean = new PostmanModel.ItemBean();
                             //方法名称
-                            itemBean.setName(e1.getName());
+                            itemBean.setName(getApiName(e1));
                             PostmanModel.ItemBean.RequestBean requestBean = new PostmanModel.ItemBean.RequestBean();
                             //请求类型
                             requestBean.setMethod(getMethod(mapO.get()));
@@ -281,6 +282,29 @@ public class PostmanExporter implements IExporter {
         return models;
     }
 
+    /**
+     * 优先 javadoc，如果没有就方法名称
+     *
+     * @param e1
+     * @return
+     */
+    private String getApiName(PsiMethod e1) {
+        String apiName = e1.getName();
+        Collection<PsiDocToken> tokens = PsiTreeUtil.findChildrenOfType(e1.getDocComment(), PsiDocToken.class);
+        if (tokens.size() > 0) {
+            Iterator<PsiDocToken> iterator = tokens.iterator();
+            while (iterator.hasNext()) {
+                PsiDocToken token = iterator.next();
+                if (token.getTokenType().getDebugName().equalsIgnoreCase("DOC_COMMENT_DATA")) {
+                    apiName = token.getText();
+                    break;
+                }
+            }
+        }
+        return apiName;
+
+    }
+
     private List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> getFromdata(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> formdata, PsiParameter pe) {
         PsiAnnotation repAnn = pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart");
         String value = PsiAnnotationUtil.getAnnotationValue(repAnn, String.class);
@@ -309,7 +333,7 @@ public class PostmanExporter implements IExporter {
             for (PsiField field : fields) {
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field.getName(), "text", null));
-                    //这个判断对多层集合嵌套的数据类型
+                //这个判断对多层集合嵌套的数据类型
 //                else
 //                if (field.getType().getCanonicalText().contains("<")) {
 //                    param.put(field.getName(), new ArrayList<>() {{
