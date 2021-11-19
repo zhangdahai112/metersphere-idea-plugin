@@ -2,6 +2,7 @@ package org.metersphere.exporter;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.PsiElement;
 import org.metersphere.constants.PluginConstants;
@@ -23,6 +24,7 @@ public class ExporterFactory {
             if (element == null)
                 Messages.showInfoMessage("no valid psi element find!", PluginConstants.MessageTitle.Info.name());
             exporterMap.get(source).export(element);
+            ProgressManager.getGlobalProgressIndicator().setText("end...");
         } catch (Exception e) {
             return false;
         }

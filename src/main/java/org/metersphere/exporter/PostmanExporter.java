@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDialog;
 import com.intellij.openapi.fileChooser.FileChooserFactory;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
@@ -89,6 +90,7 @@ public class PostmanExporter implements IExporter {
         if (psiElement instanceof PsiDirectory) {
             Arrays.stream(psiElement.getChildren()).forEach(p -> {
                 if (p instanceof PsiJavaFile) {
+                    ProgressManager.getGlobalProgressIndicator().setText("find controller: " + ((PsiJavaFile) p).getName());
                     files.add((PsiJavaFile) p);
                 } else if (p instanceof PsiDirectory) {
                     getFile(p, files);
@@ -96,6 +98,7 @@ public class PostmanExporter implements IExporter {
             });
         } else {
             if (psiElement.getContainingFile() instanceof PsiJavaFile) {
+                ProgressManager.getGlobalProgressIndicator().setText("find controller: " + ((PsiJavaFile) psiElement.getContainingFile()).getName());
                 files.add((PsiJavaFile) psiElement.getContainingFile());
             }
         }
@@ -139,8 +142,9 @@ public class PostmanExporter implements IExporter {
                     PsiAnnotation requestMappingA = annotations.size() > 0 ? annotations.get(0) : null;
                     if (requestMappingA != null) {
                         basePath = PsiAnnotationUtil.getAnnotationValue(requestMappingA, String.class);
-                        if (StringUtils.isNotBlank(basePath) && basePath.startsWith("/")) {
-                            basePath = basePath.replaceFirst("/", "");
+                        if (StringUtils.isNotBlank(basePath)) {
+                            if (basePath.startsWith("/"))
+                                basePath = basePath.replaceFirst("/", "");
                         } else {
                             basePath = "";
                         }
@@ -179,6 +183,7 @@ public class PostmanExporter implements IExporter {
                                 urlBean.setRaw(rawPre + (urlStr.startsWith("/") ? urlStr : "/" + urlStr));
                             }
                             requestBean.setUrl(urlBean);
+                            ProgressManager.getGlobalProgressIndicator().setText(String.format("find controller: %s, api: %s", f.getName(), urlBean.getRaw()));
                             //header
                             List<PostmanModel.ItemBean.RequestBean.HeaderBean> headerBeans = new ArrayList<>();
                             if (restController) {
@@ -466,12 +471,19 @@ public class PostmanExporter implements IExporter {
         return r;
     }
 
+    List<String> skipJavaTypes = new ArrayList<>() {{
+        add("serialVersionUID");
+        add("optimisticLockVersion");
+    }};
+
     public String getRaw(PsiParameter pe) {
         PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.projectScope(pe.getProject()));
         LinkedHashMap param = new LinkedHashMap();
         if (psiClass != null) {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field : fields) {
+                if (skipJavaTypes.contains(field.getType().getCanonicalText()))
+                    continue;
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
                     //这个判断对多层集合嵌套的数据类型
@@ -498,6 +510,8 @@ public class PostmanExporter implements IExporter {
             return null;
         LinkedHashMap param = new LinkedHashMap();
         for (PsiField field : fields) {
+            if (skipJavaTypes.contains(field.getType().getCanonicalText()))
+                continue;
             if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                 param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
             else if (field.getType().getCanonicalText().contains("[]") || field.getType().getCanonicalText().contains("<")) {

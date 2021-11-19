@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiJavaFile;
 import org.apache.http.HttpEntity;
@@ -15,9 +15,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.metersphere.AppSettingService;
-import org.metersphere.constants.PluginConstants;
 import org.metersphere.model.PostmanModel;
 import org.metersphere.state.AppSettingState;
 import org.metersphere.utils.HttpFutureUtils;
@@ -45,7 +43,7 @@ public class MeterSphereExporter implements IExporter {
         try {
 
             if (!MSApiUtil.test(appSettingService.getState())) {
-                Messages.showInfoMessage("please input correct ak sk!", PluginConstants.MessageTitle.Info.name());
+                ProgressManager.getGlobalProgressIndicator().setText("please input correct ak sk!");
                 return false;
             }
 
@@ -55,12 +53,12 @@ public class MeterSphereExporter implements IExporter {
                     f instanceof PsiJavaFile
             ).collect(Collectors.toList());
             if (files.size() == 0) {
-                Messages.showInfoMessage("No java file detected! please change your search root", PluginConstants.MessageTitle.Info.name());
+                ProgressManager.getGlobalProgressIndicator().setText("No java file detected! please change your search root");
                 return false;
             }
             List<PostmanModel> postmanModels = postmanExporter.transform(files, false);
             if (postmanModels.size() == 0) {
-                Messages.showInfoMessage("No java api was found! please change your search root", PluginConstants.MessageTitle.Info.name());
+                ProgressManager.getGlobalProgressIndicator().setText("No java api was found! please change your search root");
                 return false;
             }
             File temp = File.createTempFile(UUID.randomUUID().toString(), null);
@@ -79,15 +77,16 @@ public class MeterSphereExporter implements IExporter {
 
             boolean r = uploadToServer(temp);
             if (r) {
-                Messages.showInfoMessage("export to MeterSphere success!", PluginConstants.MessageTitle.Info.name());
+                ProgressManager.getGlobalProgressIndicator().setText("Export to MeterSphere success!");
             } else {
-                Messages.showInfoMessage("export to MeterSphere fail!", PluginConstants.MessageTitle.Info.name());
+                ProgressManager.getGlobalProgressIndicator().setText("Export to MeterSphere fail!");
             }
             if (temp.exists()) {
                 temp.delete();
             }
             return true;
         } catch (Exception e) {
+            ProgressManager.getGlobalProgressIndicator().setText("Export to MeterSphere error:" + e.getMessage());
             logger.error("MeterSphere plugin export to metersphere error start......");
             logger.error(e);
             logger.error("MeterSphere plugin export to metersphere error end......");
@@ -96,7 +95,7 @@ public class MeterSphereExporter implements IExporter {
     }
 
     private boolean uploadToServer(File file) {
-
+        ProgressManager.getGlobalProgressIndicator().setText(String.format("Start to sync to MeterSphere Server"));
         CloseableHttpClient httpclient = HttpFutureUtils.getOneHttpClient();
         AppSettingState state = appSettingService.getState();
         String url = state.getMeterSphereAddress() + "/api/definition/import";

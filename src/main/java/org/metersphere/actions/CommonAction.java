@@ -13,12 +13,13 @@ public abstract class CommonAction extends AnAction {
         if (project == null) {
             return false;
         }
+
         return ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
             ApplicationManager.getApplication().runReadAction(() -> {
                 ProgressManager.getGlobalProgressIndicator().setText("begin...");
                 ExporterFactory.export(source, event);
-                ProgressManager.getGlobalProgressIndicator().setText("end...");
             });
-        }, "exporting", true, event.getProject());
+        }, "Exporting api to MeterSphere please wait...", true, event.getProject());
     }
+
 }
