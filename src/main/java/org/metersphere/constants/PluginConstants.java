@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 public class PluginConstants {
-    public static final String DISPLAY_NAME = "MeterSphere";
+    public static final String EXPORTER_MS = "MeterSphere";
+    public static final String EXPORTER_POSTMAN = "Postman";
 
     public static final List<String> simpleJavaType = new ArrayList<>() {{
         add("int");

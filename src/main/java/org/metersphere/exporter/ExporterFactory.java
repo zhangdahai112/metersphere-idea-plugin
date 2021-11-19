@@ -12,8 +12,8 @@ import java.util.Map;
 
 public class ExporterFactory {
     private static Map<String, IExporter> exporterMap = new HashMap<>() {{
-        put("postman", new PostmanExporter());
-        put("ms", new MeterSphereExporter());
+        put(PluginConstants.EXPORTER_POSTMAN, new PostmanExporter());
+        put(PluginConstants.EXPORTER_MS, new MeterSphereExporter());
     }};
 
     public static boolean export(String source, AnActionEvent event) {
