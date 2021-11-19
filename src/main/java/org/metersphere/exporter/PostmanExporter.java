@@ -309,13 +309,35 @@ public class PostmanExporter implements IExporter {
             for (PsiField field : fields) {
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field.getName(), "text", null));
-                //这个判断对多层集合嵌套的数据类型
+                    //这个判断对多层集合嵌套的数据类型
+//                else
+//                if (field.getType().getCanonicalText().contains("<")) {
+//                    param.put(field.getName(), new ArrayList<>() {{
+//                        add(getFields(JavaPsiFacade.getInstance(pe.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(pe.getProject()))));
+//                    }});
+//                } else if (field.getType().getCanonicalText().contains("[]"))
+//                    param.put(field.getName(), new JSONArray());
+//                else
+//                    param.put(field.getName(), new JSONObject());
             }
         }
 
         return param;
     }
 
+    private void getFiledFormDataBean(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param, PsiField field) {
+        PsiClass psiClass = JavaPsiFacade.getInstance(field.getProject()).findClass(field.getType().getCanonicalText(), GlobalSearchScope.projectScope(field.getProject()));
+        if (psiClass != null) {
+            PsiField[] fields = psiClass.getAllFields();
+            for (PsiField field1 : fields) {
+                if (PluginConstants.simpleJavaType.contains(field1.getType().getCanonicalText()))
+                    param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field1.getName(), "text", null));
+                    //这个判断对多层集合嵌套的数据类型
+                else
+                    getFiledFormDataBean(param, field1);
+            }
+        }
+    }
 
     /**
      * 获取 @RequestPart 类型 form
@@ -482,7 +504,7 @@ public class PostmanExporter implements IExporter {
         if (psiClass != null) {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field : fields) {
-                if (skipJavaTypes.contains(field.getType().getCanonicalText()))
+                if (skipJavaTypes.contains(field.getName()))
                     continue;
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
@@ -510,7 +532,7 @@ public class PostmanExporter implements IExporter {
             return null;
         LinkedHashMap param = new LinkedHashMap();
         for (PsiField field : fields) {
-            if (skipJavaTypes.contains(field.getType().getCanonicalText()))
+            if (skipJavaTypes.contains(field.getName()))
                 continue;
             if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                 param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
