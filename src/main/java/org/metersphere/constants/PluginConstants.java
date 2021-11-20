@@ -26,6 +26,7 @@ public class PluginConstants {
         add("java.lang.Double");
         add("boolean");
         add("java.lang.Boolean");
+        add("String");
         add("java.lang.String");
     }};
 
@@ -47,6 +48,7 @@ public class PluginConstants {
         put("boolean", false);
         put("java.lang.Boolean", false);
         put("java.lang.String", "");
+        put("String", "");
     }};
 
     public enum MessageTitle {

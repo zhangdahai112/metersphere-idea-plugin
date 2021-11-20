@@ -12,7 +12,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassImpl;
 import com.intellij.psi.javadoc.PsiDocToken;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -326,23 +325,21 @@ public class PostmanExporter implements IExporter {
     }
 
     private List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> getFormDataBeans(PsiParameter pe) {
-        PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.projectScope(pe.getProject()));
+        PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.allScope(pe.getProject()));
         List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param = new LinkedList<>();
         if (psiClass != null) {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field : fields) {
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field.getName(), "text", null));
-                //这个判断对多层集合嵌套的数据类型
-//                else
-//                if (field.getType().getCanonicalText().contains("<")) {
-//                    param.put(field.getName(), new ArrayList<>() {{
-//                        add(getFields(JavaPsiFacade.getInstance(pe.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(pe.getProject()))));
-//                    }});
-//                } else if (field.getType().getCanonicalText().contains("[]"))
-//                    param.put(field.getName(), new JSONArray());
-//                else
-//                    param.put(field.getName(), new JSONObject());
+                    //这个判断对多层集合嵌套的数据类型
+                else if (field.getType().getCanonicalText().contains("<")) {
+
+                } else if (field.getType().getCanonicalText().contains("[]")) {
+
+                } else {
+
+                }
             }
         }
 
@@ -350,7 +347,7 @@ public class PostmanExporter implements IExporter {
     }
 
     private void getFiledFormDataBean(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param, PsiField field) {
-        PsiClass psiClass = JavaPsiFacade.getInstance(field.getProject()).findClass(field.getType().getCanonicalText(), GlobalSearchScope.projectScope(field.getProject()));
+        PsiClass psiClass = JavaPsiFacade.getInstance(field.getProject()).findClass(field.getType().getCanonicalText(), GlobalSearchScope.allScope(field.getProject()));
         if (psiClass != null) {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field1 : fields) {
@@ -518,58 +515,97 @@ public class PostmanExporter implements IExporter {
     }
 
     List<String> skipJavaTypes = new ArrayList<>() {{
-        add("serialVersionUID");
-        add("optimisticLockVersion");
+        add("serialVersionUID".toLowerCase());
+        add("optimisticLockVersion".toLowerCase(Locale.ROOT));
     }};
 
     public String getRaw(PsiParameter pe) {
-        PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.projectScope(pe.getProject()));
+        PsiClass psiClass = JavaPsiFacade.getInstance(pe.getProject()).findClass(pe.getType().getCanonicalText(), GlobalSearchScope.allScope(pe.getProject()));
         LinkedHashMap param = new LinkedHashMap();
         if (psiClass != null) {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field : fields) {
-                if (skipJavaTypes.contains(field.getName()))
+                if (skipJavaTypes.contains(field.getName().toLowerCase()))
                     continue;
+                //简单对象
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
                     param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
                     //这个判断对多层集合嵌套的数据类型
                 else {
-                    if (field.getType().getCanonicalText().contains("<")) {
+                    //复杂对象
+                    //容器
+                    if (field.getType().getCanonicalText().contains("<") && field.getType().getCanonicalText().contains(">")) {
                         param.put(field.getName(), new ArrayList<>() {{
-                            add(getFields(JavaPsiFacade.getInstance(pe.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(pe.getProject()))));
+                            add(getFields(JavaPsiFacade.getInstance(pe.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.allScope(pe.getProject()))));
                         }});
-                    } else if (field.getType().getCanonicalText().contains("[]"))
-                        param.put(field.getName(), new JSONArray());
-                    else
-                        param.put(field.getName(), new JSONObject());
+                    } else if (field.getType().getCanonicalText().contains("[]"))//数组
+                        param.put(field.getName(), getJSONArray(field));
+                    else//普通对象
+                        param.put(field.getName(), getFields(getPsiClass(field, "pojo")));
                 }
             }
         }
         return JSONObject.toJSONString(param, SerializerFeature.PrettyFormat);
     }
 
+    /**
+     * 简单对象数组和复杂对象数组的
+     *
+     * @param field
+     * @return
+     */
+    private JSONArray getJSONArray(PsiField field) {
+        JSONArray r = new JSONArray();
+        String qualifiedName = field.getType().getCanonicalText().replace("[]", "");
+        if (PluginConstants.simpleJavaType.contains(qualifiedName)) {
+            r.add(PluginConstants.simpleJavaTypeValue.get(qualifiedName));
+        } else {
+            PsiClass psiClass = getPsiClass(field, "array");
+            if (psiClass != null) {
+                r.add(getFields(psiClass));
+            }
+        }
+        return r;
+    }
+
     public Object getFields(PsiClass context) {
         if (context == null)
-            return null;
+            return "";
+        if (PluginConstants.simpleJavaType.contains(context.getName())) {
+            return PluginConstants.simpleJavaTypeValue.get(context.getName());
+        }
+        //复杂对象类型遍历属性
         PsiField[] fields = context.getAllFields();
         if (fields == null)
-            return null;
+            return "";
         LinkedHashMap param = new LinkedHashMap();
         for (PsiField field : fields) {
-            if (skipJavaTypes.contains(field.getName()))
+            if (skipJavaTypes.contains(field.getName().toLowerCase()))
                 continue;
-            if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
+            if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))//普通类型
                 param.put(field.getName(), PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()));
-            else if (field.getType().getCanonicalText().contains("[]") || field.getType().getCanonicalText().contains("<")) {
-                if (!PluginConstants.simpleJavaType.contains(((PsiClassImpl) field.getContext()).getQualifiedName())) {
-                    param.put(field.getName(), getFields(JavaPsiFacade.getInstance(context.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.projectScope(context.getProject()))));
-                } else {
-                    param.put(field.getName(), new JSONArray());
-                }
-            } else
-                param.put(field.getName(), new JSONObject());
+            else {
+                //容器
+                if (field.getType().getCanonicalText().contains("<") && field.getType().getCanonicalText().contains(">")) {
+                    param.put(field.getName(), getFields(getPsiClass(field, "collection")));
+                } else if (field.getType().getCanonicalText().contains("[]")) {
+                    //数组
+                    param.put(field.getName(), getJSONArray(field));
+                } else
+                    param.put(field.getName(), getFields(getPsiClass(field, "pojo")));
+            }
         }
         return param;
     }
 
+    private PsiClass getPsiClass(PsiField field, String type) {
+        if (type.equalsIgnoreCase("collection"))
+            return JavaPsiFacade.getInstance(field.getProject()).findClass(field.getType().getCanonicalText().split("<")[1].split(">")[0], GlobalSearchScope.allScope(field.getProject()));
+        else if (type.equalsIgnoreCase("array"))
+            return JavaPsiFacade.getInstance(field.getProject()).findClass(field.getType().getCanonicalText().replace("[]", ""), GlobalSearchScope.allScope(field.getProject()));
+        else
+            return JavaPsiFacade.getInstance(field.getProject()).findClass(field.getType().getCanonicalText(), GlobalSearchScope.allScope(field.getProject()));
+    }
 }
+
+
