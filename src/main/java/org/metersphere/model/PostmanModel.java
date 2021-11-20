@@ -41,6 +41,7 @@ public class PostmanModel implements Serializable {
                 public static class FormDataBean implements Serializable {
                     private String key;
                     private String type;
+                    private Object value;
                     private String description;
                 }
 

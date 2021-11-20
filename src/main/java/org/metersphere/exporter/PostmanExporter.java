@@ -316,7 +316,7 @@ public class PostmanExporter implements IExporter {
 
         String type = getPeFormType(pe);
         if (type.equalsIgnoreCase("file"))
-            formdata.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(value, type, null));
+            formdata.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(value, type, null, null));
         else {
             List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> dataBeans = getFormDataBeans(pe);
             formdata.addAll(dataBeans);
@@ -331,19 +331,111 @@ public class PostmanExporter implements IExporter {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field : fields) {
                 if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))
-                    param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field.getName(), "text", null));
+                    param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field.getName(), "text", PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()), null));
                     //这个判断对多层集合嵌套的数据类型
                 else if (field.getType().getCanonicalText().contains("<")) {
-
+                    getFormDataBeansCollection(param, field, field.getName() + "[0]");
                 } else if (field.getType().getCanonicalText().contains("[]")) {
-
+                    getFormDataBeansArray(param, field, field.getName() + "[0]");
                 } else {
-
+                    getFormDataBeansPojo(param, field, field.getName());
                 }
             }
         }
 
         return param;
+    }
+
+    private void getFormDataBeansPojo(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param, PsiField fatherField, String prefixField) {
+        PsiClass psiClass = getPsiClass(fatherField, "pojo");
+        prefixField = StringUtils.isNotBlank(prefixField) ? prefixField : "";
+        if (psiClass != null) {
+            if (PluginConstants.simpleJavaType.contains(psiClass.getName())) {
+                param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(prefixField, "text", PluginConstants.simpleJavaTypeValue.get(psiClass.getName()), ""));
+            } else {
+                //复杂对象类型遍历属性
+                PsiField[] fields = psiClass.getAllFields();
+                for (PsiField field : fields) {
+                    if (skipJavaTypes.contains(field.getName().toLowerCase()))
+                        continue;
+                    if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))//普通类型
+                        param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(prefixField + "." + field.getName(), "text", PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()), ""));
+                    else {
+                        //容器
+                        String pf = prefixField + "." + field.getName() + "[0]";
+                        if (field.getType().getCanonicalText().contains("<") && field.getType().getCanonicalText().contains(">")) {
+                            getFormDataBeansCollection(param, field, pf);
+                        } else if (field.getType().getCanonicalText().contains("[]")) {
+                            //数组
+                            getFormDataBeansArray(param, field, pf);
+                        } else
+                            getFormDataBeansPojo(param, field, pf);
+                    }
+                }
+            }
+        }
+    }
+
+    private void getFormDataBeansArray(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param, PsiField fatherField, String prefixField) {
+        PsiClass psiClass = getPsiClass(fatherField, "array");
+        prefixField = StringUtils.isNotBlank(prefixField) ? prefixField : "";
+        if (psiClass != null) {
+            if (PluginConstants.simpleJavaType.contains(psiClass.getName())) {
+                param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(prefixField, "text", PluginConstants.simpleJavaTypeValue.get(psiClass.getName()), ""));
+            } else {
+                //复杂对象类型遍历属性
+                PsiField[] fields = psiClass.getAllFields();
+                for (PsiField field : fields) {
+                    if (skipJavaTypes.contains(field.getName().toLowerCase()))
+                        continue;
+                    if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))//普通类型
+                        param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(prefixField + "." + field.getName(), "text", PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()), ""));
+                    else {
+                        //容器
+                        String pf = prefixField + "." + field.getName() + "[0]";
+                        if (field.getType().getCanonicalText().contains("<") && field.getType().getCanonicalText().contains(">")) {
+                            getFormDataBeansCollection(param, field, pf);
+                        } else if (field.getType().getCanonicalText().contains("[]")) {
+                            //数组
+                            getFormDataBeansArray(param, field, pf);
+                        } else
+                            getFormDataBeansPojo(param, field, pf);
+                    }
+                }
+            }
+        }
+    }
+
+    private void getFormDataBeansCollection(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param, PsiField fatherField, String prefixField) {
+        PsiClass psiClass = getPsiClass(fatherField, "collection");
+        prefixField = StringUtils.isNotBlank(prefixField) ? prefixField : "";
+        if (psiClass != null) {
+            if (PluginConstants.simpleJavaType.contains(psiClass.getName())) {
+                param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(prefixField, "text", PluginConstants.simpleJavaTypeValue.get(psiClass.getName()), ""));
+            } else {
+                //复杂对象类型遍历属性
+                PsiField[] fields = psiClass.getAllFields();
+                for (PsiField field : fields) {
+                    if (skipJavaTypes.contains(field.getName().toLowerCase()))
+                        continue;
+                    if (PluginConstants.simpleJavaType.contains(field.getType().getCanonicalText()))//普通类型
+                        param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(prefixField + "." + field.getName(), "text", PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()), ""));
+                    else {
+                        //容器
+                        String pf = prefixField + "." + field.getName() + "[0]";
+                        if (field.getType().getCanonicalText().contains("<") && field.getType().getCanonicalText().contains(">")) {
+                            getFormDataBeansCollection(param, field, pf);
+                        } else if (field.getType().getCanonicalText().contains("[]")) {
+                            //数组
+                            getFormDataBeansArray(param, field, pf);
+                        } else
+                            getFormDataBeansPojo(param, field, pf);
+                    }
+                }
+            }
+        } else {
+            logger.error(fatherField.getContainingFile().getName() + ":" + fatherField.getName() + " cannot find psiclass");
+        }
     }
 
     private void getFiledFormDataBean(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> param, PsiField field) {
@@ -352,7 +444,7 @@ public class PostmanExporter implements IExporter {
             PsiField[] fields = psiClass.getAllFields();
             for (PsiField field1 : fields) {
                 if (PluginConstants.simpleJavaType.contains(field1.getType().getCanonicalText()))
-                    param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field1.getName(), "text", null));
+                    param.add(new PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean(field1.getName(), "text", PluginConstants.simpleJavaTypeValue.get(field.getType().getCanonicalText()), null));
                     //这个判断对多层集合嵌套的数据类型
                 else
                     getFiledFormDataBean(param, field1);
