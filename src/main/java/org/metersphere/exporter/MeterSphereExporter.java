@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class MeterSphereExporter implements IExporter {
     private Logger logger = Logger.getInstance(MeterSphereExporter.class);
     private PostmanExporter postmanExporter = new PostmanExporter();
-    private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
+    private AppSettingService appSettingService = ApplicationManager.getApplication().getComponent(AppSettingService.class);
 
     @Override
     public boolean export(PsiElement psiElement) {

@@ -232,7 +232,7 @@ public class PostmanExporter implements IExporter {
                             for (PsiParameter pe : parameterList.getParameters()) {
                                 PsiAnnotation[] pAt = pe.getAnnotations();
                                 if (pAt != null && pAt.length != 0) {
-                                    if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestBody") != null) {
+                                    if (pe.hasAnnotation("org.springframework.web.bind.annotation.RequestBody")) {
                                         bodyBean.setMode("raw");
                                         bodyBean.setRaw(getRaw(pe));
 
@@ -245,7 +245,7 @@ public class PostmanExporter implements IExporter {
                                         //隐式
                                         addRestHeader(headerBeans);
                                     }
-                                    if (pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart") != null) {
+                                    if (pe.hasAnnotation("org.springframework.web.bind.annotation.RequestPart")) {
                                         bodyBean.setMode("formdata");
                                         bodyBean.setFormdata(getFromdata(bodyBean.getFormdata(), pe));
                                         requestBean.setBody(bodyBean);
@@ -294,7 +294,7 @@ public class PostmanExporter implements IExporter {
             Iterator<PsiDocToken> iterator = tokens.iterator();
             while (iterator.hasNext()) {
                 PsiDocToken token = iterator.next();
-                if (token.getTokenType().getDebugName().equalsIgnoreCase("DOC_COMMENT_DATA")) {
+                if (token.getTokenType().toString().equalsIgnoreCase("DOC_COMMENT_DATA")) {
                     apiName = token.getText();
                     break;
                 }
@@ -305,8 +305,9 @@ public class PostmanExporter implements IExporter {
     }
 
     private List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> getFromdata(List<PostmanModel.ItemBean.RequestBean.BodyBean.FormDataBean> formdata, PsiParameter pe) {
-        PsiAnnotation repAnn = pe.getAnnotation("org.springframework.web.bind.annotation.RequestPart");
-        String value = PsiAnnotationUtil.getAnnotationValue(repAnn, String.class);
+        PsiAnnotation[] reqAnns = pe.getAnnotations();
+        PsiAnnotation reqAnn = Arrays.stream(reqAnns).filter(p -> p.getQualifiedName().contains("org.springframework.web.bind.annotation.RequestPart")).collect(Collectors.toList()).stream().findFirst().get();
+        String value = PsiAnnotationUtil.getAnnotationValue(reqAnn, String.class);
         if (StringUtils.isBlank(value)) {
             value = pe.getName();
         }
@@ -529,7 +530,7 @@ public class PostmanExporter implements IExporter {
         for (PsiParameter psiParameter : parameter) {
             PsiAnnotation[] pAt = psiParameter.getAnnotations();
             if (pAt != null && pAt.length != 0) {
-                if (psiParameter.getAnnotation("org.springframework.web.bind.annotation.RequestBody") == null && psiParameter.getAnnotation("org.springframework.web.bind.annotation.RequestPart") == null && psiParameter.getAnnotation("org.springframework.web.bind.annotation.PathVariable") == null) {
+                if (psiParameter.hasAnnotation("org.springframework.web.bind.annotation.RequestBody") && psiParameter.hasAnnotation("org.springframework.web.bind.annotation.RequestPart") && psiParameter.hasAnnotation("org.springframework.web.bind.annotation.PathVariable")) {
                     JSONObject stringParam = new JSONObject();
                     stringParam.put("key", psiParameter.getName());
                     stringParam.put("value", "");
@@ -560,7 +561,7 @@ public class PostmanExporter implements IExporter {
 
     public String getMethod(PsiAnnotation mapAnn) {
         String method = PsiAnnotationUtil.getAnnotationValue(mapAnn, "method", String.class);
-        if(StringUtils.isNotBlank(method)){
+        if (StringUtils.isNotBlank(method)) {
             return method;
         }
         for (String s : SpringMappingConstants.mapList) {
@@ -601,9 +602,9 @@ public class PostmanExporter implements IExporter {
         Iterator<PsiAnnotation> it = annotations.iterator();
         while (it.hasNext()) {
             PsiAnnotation next = it.next();
-            if (next.hasQualifiedName("org.springframework.web.bind.annotation.RestController"))
+            if (next.getQualifiedName().contains("org.springframework.web.bind.annotation.RestController"))
                 r.put("rest", true);
-            if (next.hasQualifiedName("org.springframework.stereotype.Controller"))
+            if (next.getQualifiedName().contains("org.springframework.stereotype.Controller"))
                 r.put("general", true);
         }
         return r;

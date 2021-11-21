@@ -35,7 +35,7 @@ public class AppSettingComponent {
     private JComboBox moduleNameCB;
     private JComboBox modeId;
     private JButton syncButton;
-    private AppSettingService appSettingService = ApplicationManager.getApplication().getService(AppSettingService.class);
+    private AppSettingService appSettingService = ApplicationManager.getApplication().getComponent(AppSettingService.class);
     private Gson gson = new Gson();
     private Logger logger = Logger.getInstance(AppSettingComponent.class);
 
