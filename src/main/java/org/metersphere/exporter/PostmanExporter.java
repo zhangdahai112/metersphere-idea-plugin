@@ -559,6 +559,10 @@ public class PostmanExporter implements IExporter {
     }
 
     public String getMethod(PsiAnnotation mapAnn) {
+        String method = PsiAnnotationUtil.getAnnotationValue(mapAnn, "method", String.class);
+        if(StringUtils.isNotBlank(method)){
+            return method;
+        }
         for (String s : SpringMappingConstants.mapList) {
             if (mapAnn.getQualifiedName().equalsIgnoreCase(s)) {
                 return s.replace("org.springframework.web.bind.annotation.", "").replace("Mapping", "").toUpperCase();
